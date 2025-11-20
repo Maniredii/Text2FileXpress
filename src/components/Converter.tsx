@@ -363,7 +363,7 @@ const Converter = () => {
         <div className="flex justify-between items-start mb-10">
           <div className="text-center flex-1">
             <div className="flex items-center justify-center gap-3 mb-2">
-              <img src="/logo.png" alt="Text2FileXpress Logo" className="w-12 h-12 rounded-lg" />
+              <img src="/logo.png" alt="Text2FileXpress Logo" className="w-16 h-16 rounded-lg shadow-lg" />
               <h1 className={`text-4xl font-extrabold sm:text-5xl ${darkMode ? 'text-white' : 'text-gray-900'}`}>
                 Text2FileXpress
               </h1>
