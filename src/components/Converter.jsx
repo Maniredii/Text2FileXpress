@@ -52,7 +52,144 @@ Answer to Question 1:
 [Your answer here]
 
 Answer to Question 2:
-[Your answer here]`
+[Your answer here]`,
+  formalLetter: `[Your Name]
+[Your Address]
+[City, State ZIP Code]
+[Email Address]
+[Phone Number]
+
+[Date]
+
+[Recipient's Name]
+[Recipient's Title]
+[Company/Organization Name]
+[Address]
+[City, State ZIP Code]
+
+Dear [Mr./Ms./Dr.] [Last Name],
+
+[Opening paragraph: State the purpose of your letter]
+
+[Body paragraph: Provide details and supporting information]
+
+[Closing paragraph: Summarize and state desired action]
+
+Sincerely,
+
+[Your Signature]
+[Your Typed Name]`,
+  coverLetter: `[Your Name]
+[Your Address]
+[City, State ZIP Code]
+[Email] | [Phone]
+
+[Date]
+
+[Hiring Manager's Name]
+[Company Name]
+[Company Address]
+[City, State ZIP Code]
+
+Dear [Hiring Manager's Name],
+
+I am writing to express my strong interest in the [Position Title] position at [Company Name], as advertised on [where you found the job posting]. As a [your current status, e.g., recent graduate, current student] with [relevant experience/skills], I am excited about the opportunity to contribute to your team.
+
+[Body paragraph 1: Highlight your relevant qualifications and experiences]
+
+[Body paragraph 2: Explain why you're interested in this company and position]
+
+[Body paragraph 3: Mention specific skills or achievements that make you a strong candidate]
+
+I would welcome the opportunity to discuss how my background and skills would benefit [Company Name]. Thank you for considering my application. I look forward to hearing from you.
+
+Sincerely,
+
+[Your Name]`,
+  requestLetter: `[Your Name]
+[Your Address]
+[Email] | [Phone]
+
+[Date]
+
+[Recipient's Name]
+[Recipient's Title]
+[Department/Organization]
+
+Subject: Request for [Specify: Leave/Permission/Information/etc.]
+
+Dear [Mr./Ms./Dr.] [Last Name],
+
+I am writing to formally request [state what you are requesting] for the period of [dates/duration] due to [brief reason].
+
+[Provide detailed explanation and justification for your request]
+
+[Mention any arrangements you have made to minimize impact]
+
+I would be grateful if you could approve this request. Please let me know if you need any additional information or documentation.
+
+Thank you for your consideration.
+
+Respectfully,
+
+[Your Name]
+[Student ID/Employee ID if applicable]`,
+  recommendationRequest: `[Your Name]
+[Your Email]
+[Your Phone]
+
+[Date]
+
+[Professor's Name]
+[Department]
+[University Name]
+
+Dear Professor [Last Name],
+
+I hope this email finds you well. I am writing to ask if you would be willing to write a letter of recommendation for me as I apply for [graduate school/internship/job position] at [institution/company name].
+
+I thoroughly enjoyed your [course name] class during [semester/year], where I [mention specific achievement or project]. I believe your perspective on my [academic abilities/work ethic/specific skills] would greatly strengthen my application.
+
+The application deadline is [date], and the letter should be submitted via [method]. I have attached my resume, personal statement, and [any other relevant documents] for your reference.
+
+I understand this is a significant time commitment, and I would be happy to provide any additional information you might need. Please let me know if you are able to write this recommendation.
+
+Thank you very much for considering my request.
+
+Best regards,
+
+[Your Name]`,
+  complaintLetter: `[Your Name]
+[Your Address]
+[Email] | [Phone]
+
+[Date]
+
+[Recipient's Name]
+[Recipient's Title]
+[Company/Department Name]
+[Address]
+
+Subject: Formal Complaint Regarding [Issue]
+
+Dear [Mr./Ms./Dr.] [Last Name],
+
+I am writing to formally lodge a complaint regarding [briefly state the issue] that occurred on [date].
+
+[Paragraph 1: Describe the situation in detail, including dates, times, and people involved]
+
+[Paragraph 2: Explain how this issue has affected you and why it is unacceptable]
+
+[Paragraph 3: State what resolution or action you expect]
+
+I trust that this matter will be addressed promptly and appropriately. I would appreciate a response within [timeframe] regarding the steps being taken to resolve this issue.
+
+Thank you for your attention to this matter.
+
+Sincerely,
+
+[Your Name]
+[Reference Number/Account Number if applicable]`
 };
 
 const Converter = () => {
@@ -220,11 +357,26 @@ const Converter = () => {
             <BookOpen className="w-5 h-5 text-indigo-500" />
             <h3 className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Quick Templates</h3>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <button onClick={() => loadTemplate('blank')} className="px-4 py-2 rounded-lg bg-gray-500 text-white hover:bg-gray-600 transition-all text-sm">Blank</button>
-            <button onClick={() => loadTemplate('essay')} className="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-all text-sm">Essay Format</button>
-            <button onClick={() => loadTemplate('report')} className="px-4 py-2 rounded-lg bg-green-500 text-white hover:bg-green-600 transition-all text-sm">Report Format</button>
-            <button onClick={() => loadTemplate('assignment')} className="px-4 py-2 rounded-lg bg-purple-500 text-white hover:bg-purple-600 transition-all text-sm">Assignment Format</button>
+
+          <div className="mb-3">
+            <p className={`text-xs font-medium mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Academic</p>
+            <div className="flex flex-wrap gap-2">
+              <button onClick={() => loadTemplate('blank')} className="px-3 py-1.5 rounded-lg bg-gray-500 text-white hover:bg-gray-600 transition-all text-xs">Blank</button>
+              <button onClick={() => loadTemplate('essay')} className="px-3 py-1.5 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-all text-xs">Essay</button>
+              <button onClick={() => loadTemplate('report')} className="px-3 py-1.5 rounded-lg bg-green-500 text-white hover:bg-green-600 transition-all text-xs">Report</button>
+              <button onClick={() => loadTemplate('assignment')} className="px-3 py-1.5 rounded-lg bg-purple-500 text-white hover:bg-purple-600 transition-all text-xs">Assignment</button>
+            </div>
+          </div>
+
+          <div>
+            <p className={`text-xs font-medium mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Letters</p>
+            <div className="flex flex-wrap gap-2">
+              <button onClick={() => loadTemplate('formalLetter')} className="px-3 py-1.5 rounded-lg bg-indigo-500 text-white hover:bg-indigo-600 transition-all text-xs">Formal Letter</button>
+              <button onClick={() => loadTemplate('coverLetter')} className="px-3 py-1.5 rounded-lg bg-pink-500 text-white hover:bg-pink-600 transition-all text-xs">Cover Letter</button>
+              <button onClick={() => loadTemplate('requestLetter')} className="px-3 py-1.5 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-all text-xs">Request Letter</button>
+              <button onClick={() => loadTemplate('recommendationRequest')} className="px-3 py-1.5 rounded-lg bg-teal-500 text-white hover:bg-teal-600 transition-all text-xs">Recommendation</button>
+              <button onClick={() => loadTemplate('complaintLetter')} className="px-3 py-1.5 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-all text-xs">Complaint</button>
+            </div>
           </div>
         </div>
 
