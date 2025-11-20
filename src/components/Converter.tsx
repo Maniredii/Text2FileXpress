@@ -207,6 +207,11 @@ const Converter = () => {
   const [history, setHistory] = useState<string[]>(['']);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [wordGoal, setWordGoal] = useState(0);
+  const [focusMode, setFocusMode] = useState(false);
+  const [showFindReplace, setShowFindReplace] = useState(false);
+  const [findText, setFindText] = useState('');
+  const [replaceText, setReplaceText] = useState('');
   const textareaRef = useRef(null);
 
   // Auto-save to localStorage
@@ -364,6 +369,118 @@ const Converter = () => {
     }
 
     return segments.length > 0 ? segments : [{ text }];
+  };
+
+  // Insert heading (H1, H2, H3)
+  const insertHeading = (level: number) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = text.substring(start, end) || 'Heading';
+
+    const headingPrefix = '#'.repeat(level) + ' ';
+    const newText = text.substring(0, start) + headingPrefix + selectedText + text.substring(end);
+    setText(newText);
+  };
+
+  // Insert bullet or numbered list
+  const insertList = (type: 'bullet' | 'numbered') => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = text.substring(start, end);
+
+    if (selectedText) {
+      const lines = selectedText.split('\n');
+      const formattedLines = lines.map((line, index) => {
+        if (type === 'bullet') {
+          return `• ${line}`;
+        } else {
+          return `${index + 1}. ${line}`;
+        }
+      });
+      const newText = text.substring(0, start) + formattedLines.join('\n') + text.substring(end);
+      setText(newText);
+    } else {
+      const prefix = type === 'bullet' ? '• ' : '1. ';
+      const newText = text.substring(0, start) + prefix + text.substring(end);
+      setText(newText);
+    }
+  };
+
+  // Find and replace
+  const handleFindReplace = (replaceAll: boolean) => {
+    if (!findText) return;
+
+    if (replaceAll) {
+      const newText = text.split(findText).join(replaceText);
+      setText(newText);
+      alert(`Replaced ${text.split(findText).length - 1} occurrence(s)`);
+    } else {
+      const index = text.indexOf(findText);
+      if (index !== -1) {
+        const newText = text.substring(0, index) + replaceText + text.substring(index + findText.length);
+        setText(newText);
+        alert('Replaced 1 occurrence');
+      } else {
+        alert('Text not found');
+      }
+    }
+    setShowFindReplace(false);
+  };
+
+  // Insert hyperlink
+  const insertLink = () => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = text.substring(start, end) || 'link text';
+    const url = prompt('Enter URL:', 'https://');
+
+    if (url) {
+      const linkText = `[${selectedText}](${url})`;
+      const newText = text.substring(0, start) + linkText + text.substring(end);
+      setText(newText);
+    }
+  };
+
+  // Change text case
+  const changeCase = (caseType: 'upper' | 'lower' | 'title') => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = text.substring(start, end);
+
+    if (!selectedText) {
+      alert('Please select some text first!');
+      return;
+    }
+
+    let transformedText = '';
+    switch (caseType) {
+      case 'upper':
+        transformedText = selectedText.toUpperCase();
+        break;
+      case 'lower':
+        transformedText = selectedText.toLowerCase();
+        break;
+      case 'title':
+        transformedText = selectedText.replace(/\w\S*/g, (txt) =>
+          txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
+        );
+        break;
+    }
+
+    const newText = text.substring(0, start) + transformedText + text.substring(end);
+    setText(newText);
   };
 
   const loadTemplate = (templateKey) => {
@@ -767,6 +884,64 @@ const Converter = () => {
                 </div>
               </div>
 
+              {/* Office Features Toolbar */}
+              <div className={`mb-2 p-3 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'}`}>
+                <div className="flex flex-wrap gap-2 items-center">
+                  {/* Headings */}
+                  <div className="flex gap-1 border-r pr-2 border-gray-400">
+                    <button onClick={() => insertHeading(1)} className={`px-2 py-1 text-xs font-bold rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="Heading 1">H1</button>
+                    <button onClick={() => insertHeading(2)} className={`px-2 py-1 text-xs font-bold rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="Heading 2">H2</button>
+                    <button onClick={() => insertHeading(3)} className={`px-2 py-1 text-xs font-bold rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="Heading 3">H3</button>
+                  </div>
+
+                  {/* Lists */}
+                  <div className="flex gap-1 border-r pr-2 border-gray-400">
+                    <button onClick={() => insertList('bullet')} className={`px-2 py-1 text-xs rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="Bullet List">• List</button>
+                    <button onClick={() => insertList('numbered')} className={`px-2 py-1 text-xs rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="Numbered List">1. List</button>
+                  </div>
+
+                  {/* Text Case */}
+                  <div className="flex gap-1 border-r pr-2 border-gray-400">
+                    <button onClick={() => changeCase('upper')} className={`px-2 py-1 text-xs rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="UPPERCASE">AA</button>
+                    <button onClick={() => changeCase('lower')} className={`px-2 py-1 text-xs rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="lowercase">aa</button>
+                    <button onClick={() => changeCase('title')} className={`px-2 py-1 text-xs rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="Title Case">Aa</button>
+                  </div>
+
+                  {/* Insert Link */}
+                  <button onClick={insertLink} className={`px-3 py-1 text-xs rounded ${darkMode ? 'hover:bg-gray-600 bg-blue-900' : 'hover:bg-blue-100 bg-blue-50'} text-blue-600 dark:text-blue-300`} title="Insert Link">🔗 Link</button>
+
+                  {/* Find & Replace */}
+                  <button onClick={() => setShowFindReplace(true)} className={`px-3 py-1 text-xs rounded ${darkMode ? 'hover:bg-gray-600 bg-purple-900' : 'hover:bg-purple-100 bg-purple-50'} text-purple-600 dark:text-purple-300`} title="Find & Replace">🔍 Find</button>
+
+                  {/* Focus Mode */}
+                  <button onClick={() => setFocusMode(!focusMode)} className={`px-3 py-1 text-xs rounded ${focusMode ? 'bg-green-600 text-white' : (darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200')}`} title="Focus Mode">
+                    {focusMode ? '👁️ Exit Focus' : '🎯 Focus'}
+                  </button>
+
+                  {/* Word Goal */}
+                  <div className="flex items-center gap-2 ml-auto">
+                    <input
+                      type="number"
+                      placeholder="Word goal"
+                      value={wordGoal || ''}
+                      onChange={(e) => setWordGoal(Number(e.target.value))}
+                      className={`w-24 px-2 py-1 text-xs rounded border ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'border-gray-300'}`}
+                    />
+                    {wordGoal > 0 && (
+                      <div className="flex items-center gap-1">
+                        <div className="w-20 h-2 bg-gray-300 dark:bg-gray-600 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full ${stats.words >= wordGoal ? 'bg-green-500' : 'bg-blue-500'}`}
+                            style={{ width: `${Math.min((stats.words / wordGoal) * 100, 100)}%` }}
+                          ></div>
+                        </div>
+                        <span className="text-xs">{Math.round((stats.words / wordGoal) * 100)}%</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               {/* Formatting Toolbar */}
               <div className={`flex gap-1 mb-2 p-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'}`}>
                 <button
@@ -900,6 +1075,57 @@ Try keyboard shortcuts:
               <button onClick={() => setShowShortcuts(false)} className="mt-6 w-full py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
                 Close
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Find & Replace Modal */}
+        {showFindReplace && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowFindReplace(false)}>
+            <div className={`max-w-md w-full rounded-xl p-6 ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`} onClick={(e) => e.stopPropagation()}>
+              <h2 className="text-2xl font-bold mb-4">🔍 Find & Replace</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Find</label>
+                  <input
+                    type="text"
+                    value={findText}
+                    onChange={(e) => setFindText(e.target.value)}
+                    className={`w-full px-3 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'}`}
+                    placeholder="Enter text to find..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Replace with</label>
+                  <input
+                    type="text"
+                    value={replaceText}
+                    onChange={(e) => setReplaceText(e.target.value)}
+                    className={`w-full px-3 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'}`}
+                    placeholder="Enter replacement text..."
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleFindReplace(false)}
+                    className="flex-1 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Replace Next
+                  </button>
+                  <button
+                    onClick={() => handleFindReplace(true)}
+                    className="flex-1 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                  >
+                    Replace All
+                  </button>
+                </div>
+                <button
+                  onClick={() => setShowFindReplace(false)}
+                  className="w-full py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         )}
