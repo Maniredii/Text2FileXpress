@@ -198,7 +198,7 @@ const Converter = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [stats, setStats] = useState({ words: 0, chars: 0 });
-  const [alignment, setAlignment] = useState('left');
+  const [alignment, setAlignment] = useState<'left' | 'center' | 'right'>('left');
   const [fontSize, setFontSize] = useState(12);
   const [lineSpacing, setLineSpacing] = useState(1.5);
   const [addPageNumbers, setAddPageNumbers] = useState(false);
@@ -320,7 +320,7 @@ const Converter = () => {
     if (!text) return;
     setIsGenerating(true);
     try {
-      let docAlignment = AlignmentType.LEFT;
+      let docAlignment: typeof AlignmentType.LEFT | typeof AlignmentType.CENTER | typeof AlignmentType.RIGHT = AlignmentType.LEFT;
       if (alignment === 'center') docAlignment = AlignmentType.CENTER;
       if (alignment === 'right') docAlignment = AlignmentType.RIGHT;
 
@@ -554,7 +554,7 @@ const Converter = () => {
                 placeholder="Type or paste your text here..."
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                style={{ textAlign: alignment, fontSize: `${fontSize}px`, lineHeight: lineSpacing }}
+                style={{ textAlign: alignment as any, fontSize: `${fontSize}px`, lineHeight: lineSpacing }}
               />
             </div>
 
