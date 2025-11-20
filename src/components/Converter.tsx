@@ -431,11 +431,18 @@ const Converter = () => {
       const lineHeight = fontSize * lineSpacing * 0.35;
 
       doc.setFontSize(fontSize);
-      const splitText = doc.splitTextToSize(text, maxLineWidth);
+
       let cursorY = margin;
       let pageNumber = 1;
 
-      splitText.forEach((line, index) => {
+      // Process each line
+      const lines = text.split('\n');
+
+      lines.forEach((line) => {
+        // Parse markdown for this line
+        const segments = parseMarkdown(line);
+
+        // Check if we need a new page
         if (cursorY + lineHeight > pageHeight - margin - (addPageNumbers ? 10 : 0)) {
           if (addPageNumbers) {
             doc.setFontSize(10);
@@ -447,17 +454,55 @@ const Converter = () => {
           cursorY = margin;
         }
 
+        // Calculate starting X position based on alignment
+        let currentX = margin;
         if (alignment === 'center') {
-          doc.text(line, pageWidth / 2, cursorY, { align: 'center' });
+          // For center alignment, we need to calculate total width first
+          let totalWidth = 0;
+          segments.forEach(seg => {
+            const textWidth = doc.getTextWidth(seg.text);
+            totalWidth += textWidth;
+          });
+          currentX = (pageWidth - totalWidth) / 2;
         } else if (alignment === 'right') {
-          doc.text(line, pageWidth - margin, cursorY, { align: 'right' });
-        } else {
-          doc.text(line, margin, cursorY);
+          let totalWidth = 0;
+          segments.forEach(seg => {
+            const textWidth = doc.getTextWidth(seg.text);
+            totalWidth += textWidth;
+          });
+          currentX = pageWidth - margin - totalWidth;
         }
+
+        // Render each segment with appropriate formatting
+        segments.forEach(seg => {
+          // Set font style based on formatting
+          if (seg.bold && seg.italic) {
+            doc.setFont('helvetica', 'bolditalic');
+          } else if (seg.bold) {
+            doc.setFont('helvetica', 'bold');
+          } else if (seg.italic) {
+            doc.setFont('helvetica', 'italic');
+          } else {
+            doc.setFont('helvetica', 'normal');
+          }
+
+          // Draw text
+          doc.text(seg.text, currentX, cursorY);
+
+          // Draw underline if needed
+          if (seg.underline) {
+            const textWidth = doc.getTextWidth(seg.text);
+            doc.line(currentX, cursorY + 1, currentX + textWidth, cursorY + 1);
+          }
+
+          // Move cursor for next segment
+          currentX += doc.getTextWidth(seg.text);
+        });
 
         cursorY += lineHeight;
       });
 
+      // Add final page number
       if (addPageNumbers) {
         doc.setFontSize(10);
         doc.text(`Page ${pageNumber}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
