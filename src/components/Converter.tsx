@@ -197,19 +197,174 @@ const Converter = () => {
   const [filename, setFilename] = useState('output');
   const [isGenerating, setIsGenerating] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
-  const [stats, setStats] = useState({ words: 0, chars: 0 });
+  const [stats, setStats] = useState({ words: 0, chars: 0, paragraphs: 0, sentences: 0, readingTime: 0 });
   const [alignment, setAlignment] = useState<'left' | 'center' | 'right'>('left');
   const [fontSize, setFontSize] = useState(12);
   const [lineSpacing, setLineSpacing] = useState(1.5);
   const [addPageNumbers, setAddPageNumbers] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [fontFamily, setFontFamily] = useState('Arial');
+  const [history, setHistory] = useState<string[]>(['']);
+  const [historyIndex, setHistoryIndex] = useState(0);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const textareaRef = useRef(null);
 
+  // Auto-save to localStorage
+  useEffect(() => {
+    const savedText = localStorage.getItem('text2filexpress_draft');
+    const savedFilename = localStorage.getItem('text2filexpress_filename');
+    const savedFontSize = localStorage.getItem('text2filexpress_fontsize');
+    const savedDarkMode = localStorage.getItem('text2filexpress_darkmode');
+
+    if (savedText) setText(savedText);
+    if (savedFilename) setFilename(savedFilename);
+    if (savedFontSize) setFontSize(parseInt(savedFontSize));
+    if (savedDarkMode) setDarkMode(savedDarkMode === 'true');
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      localStorage.setItem('text2filexpress_draft', text);
+      localStorage.setItem('text2filexpress_filename', filename);
+      localStorage.setItem('text2filexpress_fontsize', fontSize.toString());
+      localStorage.setItem('text2filexpress_darkmode', darkMode.toString());
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [text, filename, fontSize, darkMode]);
+
+  // Enhanced statistics calculation
   useEffect(() => {
     const words = text.trim() ? text.trim().split(/\s+/).length : 0;
     const chars = text.length;
-    setStats({ words, chars });
+    const paragraphs = text.trim() ? text.split(/\n\n+/).filter(p => p.trim()).length : 0;
+    const sentences = text.trim() ? text.split(/[.!?]+/).filter(s => s.trim()).length : 0;
+    const readingTime = Math.ceil(words / 200); // 200 words per minute average
+    setStats({ words, chars, paragraphs, sentences, readingTime });
   }, [text]);
+
+  // History tracking for undo/redo
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (text !== history[historyIndex]) {
+        const newHistory = history.slice(0, historyIndex + 1);
+        newHistory.push(text);
+        if (newHistory.length > 50) newHistory.shift(); // Keep last 50 states
+        setHistory(newHistory);
+        setHistoryIndex(newHistory.length - 1);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [text]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl/Cmd + B for Bold
+      if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+        e.preventDefault();
+        applyFormatting('bold');
+      }
+      // Ctrl/Cmd + I for Italic
+      if ((e.ctrlKey || e.metaKey) && e.key === 'i') {
+        e.preventDefault();
+        applyFormatting('italic');
+      }
+      // Ctrl/Cmd + U for Underline
+      if ((e.ctrlKey || e.metaKey) && e.key === 'u') {
+        e.preventDefault();
+        applyFormatting('underline');
+      }
+      // Ctrl/Cmd + S for Save PDF
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        if (text) handleGeneratePDF();
+      }
+      // Ctrl/Cmd + Shift + S for Save DOCX
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'S') {
+        e.preventDefault();
+        if (text) handleGenerateDOCX();
+      }
+      // Ctrl/Cmd + Z for Undo
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      }
+      // Ctrl/Cmd + Y or Ctrl/Cmd + Shift + Z for Redo
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) {
+        e.preventDefault();
+        redo();
+      }
+      // ? for shortcuts help
+      if (e.key === '?' && !e.ctrlKey && !e.metaKey) {
+        setShowShortcuts(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [text, history, historyIndex]);
+
+  const undo = () => {
+    if (historyIndex > 0) {
+      setHistoryIndex(historyIndex - 1);
+      setText(history[historyIndex - 1]);
+    }
+  };
+
+  const redo = () => {
+    if (historyIndex < history.length - 1) {
+      setHistoryIndex(historyIndex + 1);
+      setText(history[historyIndex + 1]);
+    }
+  };
+
+  const clearDraft = () => {
+    if (confirm('Clear saved draft and all text?')) {
+      localStorage.removeItem('text2filexpress_draft');
+      setText('');
+      setHistory(['']);
+      setHistoryIndex(0);
+    }
+  };
+
+  const sanitizeFilename = (name: string) => {
+    return name.replace(/[^a-z0-9_\-]/gi, '_').replace(/_{2,}/g, '_');
+  };
+
+  // Parse markdown for formatting
+  const parseMarkdown = (text: string) => {
+    const segments: Array<{ text: string, bold?: boolean, italic?: boolean, underline?: boolean }> = [];
+    let currentPos = 0;
+
+    // Regex to match **bold**, *italic*, __underline__
+    const regex = /(\*\*([^*]+)\*\*)|(\*([^*]+)\*)|(__([^_]+)__)/g;
+    let match;
+
+    while ((match = regex.exec(text)) !== null) {
+      // Add text before match
+      if (match.index > currentPos) {
+        segments.push({ text: text.substring(currentPos, match.index) });
+      }
+
+      // Add formatted text
+      if (match[1]) { // **bold**
+        segments.push({ text: match[2], bold: true });
+      } else if (match[3]) { // *italic*
+        segments.push({ text: match[4], italic: true });
+      } else if (match[5]) { // __underline__
+        segments.push({ text: match[6], underline: true });
+      }
+
+      currentPos = match.index + match[0].length;
+    }
+
+    // Add remaining text
+    if (currentPos < text.length) {
+      segments.push({ text: text.substring(currentPos) });
+    }
+
+    return segments.length > 0 ? segments : [{ text }];
+  };
 
   const loadTemplate = (templateKey) => {
     setText(TEMPLATES[templateKey]);
@@ -260,7 +415,8 @@ const Converter = () => {
 
   const handleDownloadTXT = () => {
     const blob = new Blob([text], { type: 'text/plain' });
-    saveAs(blob, `${filename}.txt`);
+    const cleanFilename = sanitizeFilename(filename);
+    saveAs(blob, `${cleanFilename}.txt`);
   };
 
   const handleGeneratePDF = () => {
@@ -307,10 +463,11 @@ const Converter = () => {
         doc.text(`Page ${pageNumber}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
       }
 
-      doc.save(`${filename}.pdf`);
+      const cleanFilename = sanitizeFilename(filename);
+      doc.save(`${cleanFilename}.pdf`);
     } catch (error) {
       console.error('Error generating PDF:', error);
-      alert('Failed to generate PDF');
+      alert('Failed to generate PDF. Please try again.');
     } finally {
       setIsGenerating(false);
     }
@@ -325,17 +482,21 @@ const Converter = () => {
       if (alignment === 'right') docAlignment = AlignmentType.RIGHT;
 
       const paragraphs = text.split('\n').map(line => {
+        const segments = parseMarkdown(line);
+
         return new Paragraph({
           alignment: docAlignment,
           spacing: {
             line: Math.round(lineSpacing * 240),
           },
-          children: [
-            new TextRun({
-              text: line,
-              size: fontSize * 2,
-            }),
-          ],
+          children: segments.map(seg => new TextRun({
+            text: seg.text,
+            size: fontSize * 2,
+            bold: seg.bold,
+            italics: seg.italic,
+            underline: seg.underline ? { type: UnderlineType.SINGLE } : undefined,
+            font: fontFamily,
+          })),
         });
       });
 
@@ -347,10 +508,11 @@ const Converter = () => {
       });
 
       const blob = await Packer.toBlob(doc);
-      saveAs(blob, `${filename}.docx`);
+      const cleanFilename = sanitizeFilename(filename);
+      saveAs(blob, `${cleanFilename}.docx`);
     } catch (error) {
       console.error('Error generating DOCX:', error);
-      alert('Failed to generate DOCX');
+      alert('Failed to generate DOCX. Please try again.');
     } finally {
       setIsGenerating(false);
     }
@@ -423,7 +585,16 @@ const Converter = () => {
         {showSettings && (
           <div className={`mb-6 p-4 rounded-xl border ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
             <h3 className={`font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Document Settings</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Font Family</label>
+                <select value={fontFamily} onChange={(e) => setFontFamily(e.target.value)} className={`w-full rounded-lg px-3 py-2 border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'}`}>
+                  <option value="Arial">Arial</option>
+                  <option value="Times New Roman">Times New Roman</option>
+                  <option value="Courier New">Courier New</option>
+                  <option value="Georgia">Georgia</option>
+                </select>
+              </div>
               <div>
                 <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Font Size</label>
                 <select value={fontSize} onChange={(e) => setFontSize(Number(e.target.value))} className={`w-full rounded-lg px-3 py-2 border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'}`}>
@@ -508,13 +679,46 @@ const Converter = () => {
                 <label htmlFor="content" className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                   Your Content
                 </label>
-                <div className="flex items-center gap-4">
-                  <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    {stats.words} words | {stats.chars} characters
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'} flex items-center gap-3`}>
+                    <span>{stats.words} words</span>
+                    <span>•</span>
+                    <span>{stats.chars} chars</span>
+                    <span>•</span>
+                    <span>{stats.paragraphs} ¶</span>
+                    <span>•</span>
+                    <span>{stats.sentences} sentences</span>
+                    {stats.readingTime > 0 && (
+                      <>
+                        <span>•</span>
+                        <span>~{stats.readingTime} min read</span>
+                      </>
+                    )}
                   </div>
-                  <button onClick={copyToClipboard} className={`text-xs flex items-center gap-1 px-2 py-1 rounded ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'}`}>
-                    <Copy className="w-3 h-3" /> Copy
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={undo}
+                      disabled={historyIndex <= 0}
+                      className={`text-xs flex items-center gap-1 px-2 py-1 rounded ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'} ${historyIndex <= 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      title="Undo (Ctrl+Z)"
+                    >
+                      ↶
+                    </button>
+                    <button
+                      onClick={redo}
+                      disabled={historyIndex >= history.length - 1}
+                      className={`text-xs flex items-center gap-1 px-2 py-1 rounded ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'} ${historyIndex >= history.length - 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      title="Redo (Ctrl+Y)"
+                    >
+                      ↷
+                    </button>
+                    <button onClick={copyToClipboard} className={`text-xs flex items-center gap-1 px-2 py-1 rounded ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'}`} title="Copy to clipboard">
+                      <Copy className="w-3 h-3" /> Copy
+                    </button>
+                    <button onClick={clearDraft} className={`text-xs flex items-center gap-1 px-2 py-1 rounded ${darkMode ? 'bg-red-900 hover:bg-red-800 text-red-200' : 'bg-red-100 hover:bg-red-200 text-red-700'}`} title="Clear all text">
+                      Clear
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -549,9 +753,16 @@ const Converter = () => {
               <textarea
                 ref={textareaRef}
                 id="content"
-                rows={15}
-                className={`block w-full rounded-lg shadow-sm focus:ring-indigo-500 sm:text-sm p-4 border resize-y font-mono ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-indigo-400' : 'border-gray-300 text-gray-800 focus:border-indigo-500'}`}
-                placeholder="Type or paste your text here..."
+                rows={20}
+                className={`block w-full rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 sm:text-sm p-4 border resize-y font-mono ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-indigo-400' : 'border-gray-300 text-gray-800 focus:border-indigo-500'}`}
+                placeholder="Paste your notes here... (e.g., project report, study notes, assignment)
+
+Try keyboard shortcuts:
+• Ctrl+B for **bold**
+• Ctrl+I for *italic*  
+• Ctrl+U for __underline__
+• Ctrl+S to save as PDF
+• Press ? for more shortcuts"
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 style={{ textAlign: alignment as any, fontSize: `${fontSize}px`, lineHeight: lineSpacing }}
@@ -605,6 +816,59 @@ const Converter = () => {
             </div>
           </div>
         </div>
+
+        {/* Keyboard Shortcuts Modal */}
+        {showShortcuts && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowShortcuts(false)}>
+            <div className={`max-w-2xl w-full rounded-xl p-6 ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`} onClick={(e) => e.stopPropagation()}>
+              <h2 className="text-2xl font-bold mb-4">⌨️ Keyboard Shortcuts</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <h3 className="font-semibold mb-2 text-indigo-500">Formatting</h3>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between"><span>Bold</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+B</kbd></div>
+                    <div className="flex justify-between"><span>Italic</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+I</kbd></div>
+                    <div className="flex justify-between"><span>Underline</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+U</kbd></div>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-2 text-green-500">File Operations</h3>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between"><span>Save as PDF</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+S</kbd></div>
+                    <div className="flex justify-between"><span>Save as DOCX</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+Shift+S</kbd></div>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-2 text-purple-500">Editing</h3>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between"><span>Undo</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+Z</kbd></div>
+                    <div className="flex justify-between"><span>Redo</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+Y</kbd></div>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-2 text-blue-500">Help</h3>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between"><span>Show shortcuts</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">?</kbd></div>
+                  </div>
+                </div>
+              </div>
+              <button onClick={() => setShowShortcuts(false)} className="mt-6 w-full py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Loading Spinner */}
+        {isGenerating && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className={`rounded-xl p-8 flex flex-col items-center ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
+              <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-indigo-600 mb-4"></div>
+              <p className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Generating your document...</p>
+              <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Please wait</p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
