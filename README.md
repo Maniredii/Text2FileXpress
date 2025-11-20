@@ -1,6 +1,8 @@
-# Text to PDF / DOCX Converter
+# Text2FileXpress
 
-A pure frontend web application to convert raw text into PDF and DOCX formats instantly. Built with React, Vite, and Tailwind CSS. **Perfect for students!**
+**Convert text to PDF, DOCX, and TXT instantly - 100% Free & Client-Side**
+
+A pure frontend web application to convert raw text into PDF and DOCX formats instantly. Built with React, Vite, and Tailwind CSS. **Perfect for students and professionals!**
 
 ## 🔥 Features
 

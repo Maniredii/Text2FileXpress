@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { FileText, FileType, Download, FileCode, Moon, Sun, AlignLeft, AlignCenter, AlignRight, Copy, BookOpen, Settings } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { FileText, FileType, Download, FileCode, Moon, Sun, AlignLeft, AlignCenter, AlignRight, Copy, BookOpen, Settings, Bold, Italic, Underline } from 'lucide-react';
 import { jsPDF } from 'jspdf';
-import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel } from 'docx';
+import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel, UnderlineType } from 'docx';
 import { saveAs } from 'file-saver';
 
 const TEMPLATES = {
@@ -203,6 +203,7 @@ const Converter = () => {
   const [lineSpacing, setLineSpacing] = useState(1.5);
   const [addPageNumbers, setAddPageNumbers] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const textareaRef = useRef(null);
 
   useEffect(() => {
     const words = text.trim() ? text.trim().split(/\s+/).length : 0;
@@ -212,6 +213,44 @@ const Converter = () => {
 
   const loadTemplate = (templateKey) => {
     setText(TEMPLATES[templateKey]);
+  };
+
+  const applyFormatting = (formatType) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = text.substring(start, end);
+
+    if (!selectedText) {
+      alert('Please select some text first!');
+      return;
+    }
+
+    let formattedText = '';
+    switch (formatType) {
+      case 'bold':
+        formattedText = `**${selectedText}**`;
+        break;
+      case 'italic':
+        formattedText = `*${selectedText}*`;
+        break;
+      case 'underline':
+        formattedText = `__${selectedText}__`;
+        break;
+      default:
+        return;
+    }
+
+    const newText = text.substring(0, start) + formattedText + text.substring(end);
+    setText(newText);
+
+    // Restore cursor position
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start, start + formattedText.length);
+    }, 0);
   };
 
   const copyToClipboard = () => {
@@ -324,13 +363,13 @@ const Converter = () => {
         <div className="flex justify-between items-start mb-10">
           <div className="text-center flex-1">
             <div className="flex items-center justify-center gap-3 mb-2">
-              <img src="/logo.png" alt="Logo" className="w-12 h-12 rounded-lg" />
+              <img src="/logo.png" alt="Text2FileXpress Logo" className="w-12 h-12 rounded-lg" />
               <h1 className={`text-4xl font-extrabold sm:text-5xl ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                Text to PDF / DOCX
+                Text2FileXpress
               </h1>
             </div>
             <p className={`text-lg ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              Convert your raw text into professional documents instantly.
+              Convert your text into professional documents instantly.
             </p>
           </div>
           <div className="flex gap-2">
@@ -478,7 +517,37 @@ const Converter = () => {
                   </button>
                 </div>
               </div>
+
+              {/* Formatting Toolbar */}
+              <div className={`flex gap-1 mb-2 p-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'}`}>
+                <button
+                  onClick={() => applyFormatting('bold')}
+                  className={`p-2 rounded hover:bg-opacity-80 transition-all ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`}
+                  title="Bold (select text first)"
+                >
+                  <Bold className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => applyFormatting('italic')}
+                  className={`p-2 rounded hover:bg-opacity-80 transition-all ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`}
+                  title="Italic (select text first)"
+                >
+                  <Italic className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => applyFormatting('underline')}
+                  className={`p-2 rounded hover:bg-opacity-80 transition-all ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`}
+                  title="Underline (select text first)"
+                >
+                  <Underline className="w-4 h-4" />
+                </button>
+                <div className={`ml-2 px-3 py-1 text-xs flex items-center ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  Select text and click a button to format
+                </div>
+              </div>
+
               <textarea
+                ref={textareaRef}
                 id="content"
                 rows={15}
                 className={`block w-full rounded-lg shadow-sm focus:ring-indigo-500 sm:text-sm p-4 border resize-y font-mono ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-indigo-400' : 'border-gray-300 text-gray-800 focus:border-indigo-500'}`}
