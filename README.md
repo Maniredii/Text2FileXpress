@@ -1,73 +1,60 @@
-# React + TypeScript + Vite
+# Text to PDF / DOCX Converter
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A pure frontend web application to convert raw text into PDF and DOCX formats instantly. Built with React, Vite, and Tailwind CSS.
 
-Currently, two official plugins are available:
+## 🔥 Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **100% Frontend**: No backend, no server, no database. Works offline.
+- **Instant Conversion**: Generates PDF and DOCX files locally in your browser.
+- **Modern UI**: Clean, responsive design with Dark Mode support.
+- **Text Formatting**: Supports text alignment (Left, Center, Right).
+- **Real-time Stats**: Word and character count.
+- **Privacy Focused**: Your data never leaves your device.
 
-## React Compiler
+## 🚀 Getting Started
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Prerequisites
 
-## Expanding the ESLint configuration
+- Node.js (v18 or higher)
+- npm (v9 or higher)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### Installation
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd text-to-pdf
+   ```
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+3. Run the development server:
+   ```bash
+   npm run dev
+   ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+4. Open your browser and visit `http://localhost:5173`.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## 🛠️ Tech Stack
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- **Framework**: [React](https://react.dev/) + [Vite](https://vitejs.dev/)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/) + [Lucide React](https://lucide.dev/) (Icons)
+- **PDF Generation**: [jsPDF](https://github.com/parallax/jsPDF)
+- **DOCX Generation**: [docx](https://docx.js.org/)
+- **File Saving**: [file-saver](https://github.com/eligrey/FileSaver.js)
+
+## 📝 Usage
+
+1. **Enter Filename**: Type a name for your output file (default is `output`).
+2. **Type Content**: Paste or type your text in the large text area.
+3. **Customize**: 
+   - Toggle **Dark Mode** using the moon/sun icon.
+   - Adjust **Alignment** using the alignment buttons.
+4. **Download**: Click **Download as PDF** or **Download as DOCX**.
+
+## 📄 License
+
+MIT License
