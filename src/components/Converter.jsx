@@ -1,8 +1,59 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, FileType, Download, FileCode, Moon, Sun, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
+import { FileText, FileType, Download, FileCode, Moon, Sun, AlignLeft, AlignCenter, AlignRight, Copy, BookOpen, Settings } from 'lucide-react';
 import { jsPDF } from 'jspdf';
-import { Document, Packer, Paragraph, TextRun, AlignmentType } from 'docx';
+import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel } from 'docx';
 import { saveAs } from 'file-saver';
+
+const TEMPLATES = {
+  blank: '',
+  essay: `[Your Name]
+[Professor's Name]
+[Course Name]
+[Date]
+
+Essay Title
+
+Introduction paragraph goes here...
+
+Body paragraph 1...
+
+Body paragraph 2...
+
+Conclusion...`,
+  report: `Title: [Report Title]
+Author: [Your Name]
+Date: [Date]
+Course: [Course Name]
+
+Executive Summary
+[Brief overview of the report]
+
+Introduction
+[Background and purpose]
+
+Methodology
+[How the research was conducted]
+
+Findings
+[Key results and data]
+
+Conclusion
+[Summary and recommendations]
+
+References
+[List of sources]`,
+  assignment: `Student Name: [Your Name]
+Student ID: [ID Number]
+Course: [Course Name]
+Assignment: [Assignment Title]
+Due Date: [Date]
+
+Answer to Question 1:
+[Your answer here]
+
+Answer to Question 2:
+[Your answer here]`
+};
 
 const Converter = () => {
   const [text, setText] = useState('');
@@ -11,12 +62,30 @@ const Converter = () => {
   const [darkMode, setDarkMode] = useState(false);
   const [stats, setStats] = useState({ words: 0, chars: 0 });
   const [alignment, setAlignment] = useState('left');
+  const [fontSize, setFontSize] = useState(12);
+  const [lineSpacing, setLineSpacing] = useState(1.5);
+  const [addPageNumbers, setAddPageNumbers] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     const words = text.trim() ? text.trim().split(/\s+/).length : 0;
     const chars = text.length;
     setStats({ words, chars });
   }, [text]);
+
+  const loadTemplate = (templateKey) => {
+    setText(TEMPLATES[templateKey]);
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(text);
+    alert('Text copied to clipboard!');
+  };
+
+  const handleDownloadTXT = () => {
+    const blob = new Blob([text], { type: 'text/plain' });
+    saveAs(blob, `${filename}.txt`);
+  };
 
   const handleGeneratePDF = () => {
     if (!text) return;
@@ -27,15 +96,22 @@ const Converter = () => {
       const pageHeight = doc.internal.pageSize.getHeight();
       const margin = 20;
       const maxLineWidth = pageWidth - (margin * 2);
-      const lineHeight = 7;
+      const lineHeight = fontSize * lineSpacing * 0.35;
 
-      doc.setFontSize(12);
+      doc.setFontSize(fontSize);
       const splitText = doc.splitTextToSize(text, maxLineWidth);
       let cursorY = margin;
+      let pageNumber = 1;
 
-      splitText.forEach(line => {
-        if (cursorY + lineHeight > pageHeight - margin) {
+      splitText.forEach((line, index) => {
+        if (cursorY + lineHeight > pageHeight - margin - (addPageNumbers ? 10 : 0)) {
+          if (addPageNumbers) {
+            doc.setFontSize(10);
+            doc.text(`Page ${pageNumber}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+            doc.setFontSize(fontSize);
+          }
           doc.addPage();
+          pageNumber++;
           cursorY = margin;
         }
 
@@ -49,6 +125,11 @@ const Converter = () => {
 
         cursorY += lineHeight;
       });
+
+      if (addPageNumbers) {
+        doc.setFontSize(10);
+        doc.text(`Page ${pageNumber}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+      }
 
       doc.save(`${filename}.pdf`);
     } catch (error) {
@@ -70,10 +151,13 @@ const Converter = () => {
       const paragraphs = text.split('\n').map(line => {
         return new Paragraph({
           alignment: docAlignment,
+          spacing: {
+            line: Math.round(lineSpacing * 240),
+          },
           children: [
             new TextRun({
               text: line,
-              size: 24,
+              size: fontSize * 2,
             }),
           ],
         });
@@ -98,7 +182,7 @@ const Converter = () => {
 
   return (
     <div className={`min-h-screen py-12 px-4 sm:px-6 lg:px-8 font-sans transition-colors duration-300 ${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-5xl mx-auto">
 
         <div className="flex justify-between items-start mb-10">
           <div className="text-center flex-1">
@@ -112,14 +196,71 @@ const Converter = () => {
               Convert your raw text into professional documents instantly.
             </p>
           </div>
-          <button
-            onClick={() => setDarkMode(!darkMode)}
-            className={`p-2 rounded-full ${darkMode ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' : 'bg-white text-gray-600 hover:bg-gray-100'} shadow-md transition-all`}
-            title="Toggle Dark Mode"
-          >
-            {darkMode ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowSettings(!showSettings)}
+              className={`p-2 rounded-full ${darkMode ? 'bg-gray-800 text-blue-400 hover:bg-gray-700' : 'bg-white text-gray-600 hover:bg-gray-100'} shadow-md transition-all`}
+              title="Settings"
+            >
+              <Settings className="w-6 h-6" />
+            </button>
+            <button
+              onClick={() => setDarkMode(!darkMode)}
+              className={`p-2 rounded-full ${darkMode ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' : 'bg-white text-gray-600 hover:bg-gray-100'} shadow-md transition-all`}
+              title="Toggle Dark Mode"
+            >
+              {darkMode ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
+            </button>
+          </div>
         </div>
+
+        {/* Templates Section */}
+        <div className={`mb-6 p-4 rounded-xl border ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+          <div className="flex items-center gap-2 mb-3">
+            <BookOpen className="w-5 h-5 text-indigo-500" />
+            <h3 className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Quick Templates</h3>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => loadTemplate('blank')} className="px-4 py-2 rounded-lg bg-gray-500 text-white hover:bg-gray-600 transition-all text-sm">Blank</button>
+            <button onClick={() => loadTemplate('essay')} className="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-all text-sm">Essay Format</button>
+            <button onClick={() => loadTemplate('report')} className="px-4 py-2 rounded-lg bg-green-500 text-white hover:bg-green-600 transition-all text-sm">Report Format</button>
+            <button onClick={() => loadTemplate('assignment')} className="px-4 py-2 rounded-lg bg-purple-500 text-white hover:bg-purple-600 transition-all text-sm">Assignment Format</button>
+          </div>
+        </div>
+
+        {/* Settings Panel */}
+        {showSettings && (
+          <div className={`mb-6 p-4 rounded-xl border ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+            <h3 className={`font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Document Settings</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Font Size</label>
+                <select value={fontSize} onChange={(e) => setFontSize(Number(e.target.value))} className={`w-full rounded-lg px-3 py-2 border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'}`}>
+                  <option value={10}>10pt</option>
+                  <option value={11}>11pt</option>
+                  <option value={12}>12pt (Default)</option>
+                  <option value={14}>14pt</option>
+                  <option value={16}>16pt</option>
+                </select>
+              </div>
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Line Spacing</label>
+                <select value={lineSpacing} onChange={(e) => setLineSpacing(Number(e.target.value))} className={`w-full rounded-lg px-3 py-2 border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'}`}>
+                  <option value={1}>Single</option>
+                  <option value={1.5}>1.5 (Default)</option>
+                  <option value={2}>Double</option>
+                </select>
+              </div>
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Page Numbers</label>
+                <label className="flex items-center cursor-pointer">
+                  <input type="checkbox" checked={addPageNumbers} onChange={(e) => setAddPageNumbers(e.target.checked)} className="mr-2" />
+                  <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Add page numbers</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className={`rounded-2xl shadow-xl overflow-hidden border ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'}`}>
           <div className="p-8">
@@ -176,8 +317,13 @@ const Converter = () => {
                 <label htmlFor="content" className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                   Your Content
                 </label>
-                <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {stats.words} words | {stats.chars} characters
+                <div className="flex items-center gap-4">
+                  <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    {stats.words} words | {stats.chars} characters
+                  </div>
+                  <button onClick={copyToClipboard} className={`text-xs flex items-center gap-1 px-2 py-1 rounded ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'}`}>
+                    <Copy className="w-3 h-3" /> Copy
+                  </button>
                 </div>
               </div>
               <textarea
@@ -187,27 +333,45 @@ const Converter = () => {
                 placeholder="Type or paste your text here..."
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                style={{ textAlign: alignment }}
+                style={{ textAlign: alignment, fontSize: `${fontSize}px`, lineHeight: lineSpacing }}
               />
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-8">
               <button
                 onClick={handleGeneratePDF}
                 disabled={!text || isGenerating}
-                className={`flex-1 flex items-center justify-center px-8 py-4 border border-transparent text-base font-medium rounded-xl text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 ${(!text || isGenerating) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`flex items-center justify-center px-4 py-3 border border-transparent text-sm font-medium rounded-xl text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 ${(!text || isGenerating) ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
-                <FileText className="w-6 h-6 mr-2" />
-                {isGenerating ? 'Generating...' : 'Download as PDF'}
+                <FileText className="w-5 h-5 mr-2" />
+                PDF
               </button>
 
               <button
                 onClick={handleGenerateDOCX}
                 disabled={!text || isGenerating}
-                className={`flex-1 flex items-center justify-center px-8 py-4 border border-transparent text-base font-medium rounded-xl text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 ${(!text || isGenerating) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`flex items-center justify-center px-4 py-3 border border-transparent text-sm font-medium rounded-xl text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 ${(!text || isGenerating) ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
-                <FileType className="w-6 h-6 mr-2" />
-                {isGenerating ? 'Generating...' : 'Download as DOCX'}
+                <FileType className="w-5 h-5 mr-2" />
+                DOCX
+              </button>
+
+              <button
+                onClick={handleDownloadTXT}
+                disabled={!text}
+                className={`flex items-center justify-center px-4 py-3 border border-transparent text-sm font-medium rounded-xl text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 ${!text ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <Download className="w-5 h-5 mr-2" />
+                TXT
+              </button>
+
+              <button
+                onClick={copyToClipboard}
+                disabled={!text}
+                className={`flex items-center justify-center px-4 py-3 border border-transparent text-sm font-medium rounded-xl text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 ${!text ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <Copy className="w-5 h-5 mr-2" />
+                Copy
               </button>
             </div>
           </div>
