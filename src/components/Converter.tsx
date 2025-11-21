@@ -10,6 +10,7 @@ import PresetManager from './PresetManager';
 import TableEditor from './TableEditor';
 import Toast from './Toast';
 import type { ToastType } from './Toast';
+import Footer from './Footer';
 
 
 const TEMPLATES = {
@@ -954,7 +955,7 @@ const Converter = () => {
         // Note: pdf-lib doesn't support encryption directly in browser
         // This is a limitation - we'll save without password for now
         const pdfBytes = await pdfDoc.save();
-        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const blob = new Blob([pdfBytes as any], { type: 'application/pdf' });
         const cleanFilename = sanitizeFilename(filename);
         saveAs(blob, `${cleanFilename}.pdf`);
         showToast('PDF generated (password protection requires server-side processing)', 'warning');
@@ -974,7 +975,7 @@ const Converter = () => {
 
   return (
     <div className={`min-h-screen py-12 px-4 sm:px-6 lg:px-8 font-sans transition-colors duration-300 ${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-[95%] mx-auto">
 
         <div className="flex justify-between items-start mb-10">
           <div className="text-center flex-1">
@@ -1513,6 +1514,9 @@ Try keyboard shortcuts:
           isVisible={toast.visible}
           onClose={() => setToast({ ...toast, visible: false })}
         />
+
+        {/* Footer with Social Links */}
+        <Footer darkMode={darkMode} />
       </div>
     </div>
   );
