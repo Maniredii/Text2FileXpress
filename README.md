@@ -14,14 +14,45 @@ A pure frontend web application to convert raw text into PDF and DOCX formats in
 
 ### Student-Friendly Features ✨
 - **📝 Quick Templates**: Pre-made formats for essays, reports, and assignments
-- **🔤 Font Size Options**: Choose from 10pt to 16pt
+- **🔤 Font Size Options**: Choose from 10pt to 24pt
 - **📏 Line Spacing**: Single, 1.5, or double spacing
 - **📄 Page Numbers**: Automatic page numbering for PDFs
 - **📋 Copy to Clipboard**: Quick copy functionality
 - **💾 Multiple Export Formats**: PDF, DOCX, and TXT
 - **🎨 Text Alignment**: Left, center, or right alignment
-- **📊 Real-time Stats**: Word and character count
+- **📊 Real-time Stats**: Word, character, paragraph, sentence count, and reading time
 - **🌙 Dark Mode**: Easy on the eyes for late-night studying
+
+### 🆕 Modern 2024-2025 Features
+- **🤖 AI-Powered Tools**:
+  - Smart text summarization (extractive)
+  - Auto-detect and format headings
+  - Reading time estimation
+- **🎨 Advanced Formatting**:
+  - Insert markdown tables with visual editor
+  - Code blocks with syntax highlighting
+  - Block quotes and horizontal rules
+  - Bold, italic, underline with markdown
+- **🔗 Sharing & Collaboration**:
+  - Generate QR codes for documents
+  - Web Share API integration
+  - Email document directly
+- **💾 Productivity Tools**:
+  - Save and load export presets
+  - Undo/Redo with history (50 states)
+  - Find and replace text
+  - Word count goals with progress tracking
+  - Focus mode for distraction-free writing
+  - Auto-save drafts to localStorage
+- **🔒 Enhanced PDF Features**:
+  - Watermark support
+  - Password protection (note: requires server-side for full encryption)
+  - Custom font families (Arial, Times New Roman, Courier, Georgia)
+- **⌨️ Keyboard Shortcuts**:
+  - Ctrl+B/I/U for formatting
+  - Ctrl+S for quick PDF save
+  - Ctrl+Z/Y for undo/redo
+  - Press ? for full shortcuts list
 
 ## 🚀 Getting Started
 

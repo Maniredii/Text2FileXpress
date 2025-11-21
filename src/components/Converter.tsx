@@ -1,8 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FileText, FileType, Download, FileCode, Moon, Sun, AlignLeft, AlignCenter, AlignRight, Copy, BookOpen, Settings, Bold, Italic, Underline, Maximize, Minimize, Hash } from 'lucide-react';
+import { FileText, FileType, Download, FileCode, Moon, Sun, AlignLeft, AlignCenter, AlignRight, Copy, BookOpen, Settings, Bold, Italic, Underline, Maximize, Minimize, Hash, Share2, Save, Table, Image, Code, Lock, Sparkles, RotateCcw, RotateCw, Trash2 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel, UnderlineType } from 'docx';
 import { saveAs } from 'file-saver';
+import QRCode from 'qrcode';
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import ShareModal from './ShareModal';
+import PresetManager from './PresetManager';
+import TableEditor from './TableEditor';
+import Toast from './Toast';
+import type { ToastType } from './Toast';
+
 
 const TEMPLATES = {
   blank: '',
@@ -213,6 +221,16 @@ const Converter = () => {
   const [findText, setFindText] = useState('');
   const [replaceText, setReplaceText] = useState('');
   const textareaRef = useRef(null);
+
+  // New state for modern features
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [showPresetManager, setShowPresetManager] = useState(false);
+  const [showTableEditor, setShowTableEditor] = useState(false);
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
+  const [toast, setToast] = useState<{ message: string; type: ToastType; visible: boolean }>({ message: '', type: 'info', visible: false });
+  const [pdfPassword, setPdfPassword] = useState('');
+  const [watermarkText, setWatermarkText] = useState('');
+  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
 
   // Auto-save to localStorage
   useEffect(() => {
@@ -690,6 +708,270 @@ const Converter = () => {
     }
   };
 
+  // Show toast notification
+  const showToast = (message: string, type: ToastType = 'info') => {
+    setToast({ message, type, visible: true });
+  };
+
+  // Generate QR code for document
+  const generateQRCode = async () => {
+    try {
+      // Create a data URL containing the document text
+      const dataUrl = await QRCode.toDataURL(text.substring(0, 2000)); // Limit to 2000 chars for QR
+      setQrCodeDataUrl(dataUrl);
+      setShowShareModal(true);
+      showToast('QR Code generated successfully!', 'success');
+    } catch (error) {
+      console.error('Error generating QR code:', error);
+      showToast('Failed to generate QR code', 'error');
+    }
+  };
+
+  // AI-powered text summarization (client-side)
+  const summarizeText = () => {
+    if (!text) {
+      showToast('No text to summarize', 'warning');
+      return;
+    }
+
+    // Simple extractive summarization: take first sentence of each paragraph
+    const paragraphs = text.split('\n\n').filter(p => p.trim());
+    const summary = paragraphs
+      .map(p => {
+        const sentences = p.split(/[.!?]+/).filter(s => s.trim());
+        return sentences[0] ? sentences[0].trim() + '.' : '';
+      })
+      .filter(s => s)
+      .join(' ');
+
+    setText(summary);
+    showToast('Text summarized!', 'success');
+  };
+
+  // Smart heading detection
+  const autoDetectHeadings = () => {
+    if (!text) return;
+
+    const lines = text.split('\n');
+    const processedLines = lines.map(line => {
+      const trimmed = line.trim();
+
+      // Skip if already a heading
+      if (trimmed.startsWith('#')) return line;
+
+      // Detect potential headings (short lines, title case, no ending punctuation)
+      if (trimmed.length > 0 && trimmed.length < 60 &&
+        trimmed[0] === trimmed[0].toUpperCase() &&
+        !trimmed.match(/[.!?]$/)) {
+        // Check if it's title case
+        const words = trimmed.split(' ');
+        const isTitleCase = words.every(w => w[0] === w[0].toUpperCase());
+
+        if (isTitleCase) {
+          return `## ${trimmed}`;
+        }
+      }
+
+      return line;
+    });
+
+    setText(processedLines.join('\n'));
+    showToast('Headings detected and formatted!', 'success');
+  };
+
+  // Load preset settings
+  const loadPreset = (preset: any) => {
+    setFontSize(preset.fontSize);
+    setLineSpacing(preset.lineSpacing);
+    setAlignment(preset.alignment);
+    setAddPageNumbers(preset.pageNumbers);
+    setFontFamily(preset.fontFamily);
+    showToast(`Preset "${preset.name}" loaded!`, 'success');
+  };
+
+  // Insert table from TableEditor
+  const insertTable = (tableMarkdown: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea) {
+      setText(text + tableMarkdown);
+      return;
+    }
+
+    const start = textarea.selectionStart;
+    const newText = text.substring(0, start) + tableMarkdown + text.substring(start);
+    setText(newText);
+    showToast('Table inserted!', 'success');
+  };
+
+  // Insert horizontal rule
+  const insertHorizontalRule = () => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const hr = '\n---\n';
+    const newText = text.substring(0, start) + hr + text.substring(start);
+    setText(newText);
+  };
+
+  // Insert block quote
+  const insertBlockQuote = () => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = text.substring(start, end);
+
+    if (selectedText) {
+      const lines = selectedText.split('\n');
+      const quotedLines = lines.map(line => `> ${line}`);
+      const newText = text.substring(0, start) + quotedLines.join('\n') + text.substring(end);
+      setText(newText);
+    } else {
+      const quote = '\n> Quote text here\n';
+      const newText = text.substring(0, start) + quote + text.substring(start);
+      setText(newText);
+    }
+  };
+
+  // Insert code block
+  const insertCodeBlock = () => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = text.substring(start, end);
+
+    const codeBlock = selectedText
+      ? `\n\`\`\`\n${selectedText}\n\`\`\`\n`
+      : '\n```\nCode here\n```\n';
+
+    const newText = text.substring(0, start) + codeBlock + text.substring(end);
+    setText(newText);
+  };
+
+  // Enhanced PDF generation with password protection and watermark
+  const handleGeneratePDFWithProtection = async () => {
+    if (!text) return;
+
+    setIsGenerating(true);
+    try {
+      // First generate PDF using jsPDF
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 20;
+      const lineHeight = fontSize * lineSpacing * 0.35;
+
+      doc.setFontSize(fontSize);
+
+      let cursorY = margin;
+      let pageNumber = 1;
+
+      const lines = text.split('\n');
+
+      lines.forEach((line) => {
+        const segments = parseMarkdown(line);
+
+        if (cursorY + lineHeight > pageHeight - margin - (addPageNumbers ? 10 : 0)) {
+          if (addPageNumbers) {
+            doc.setFontSize(10);
+            doc.text(`Page ${pageNumber}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+            doc.setFontSize(fontSize);
+          }
+          doc.addPage();
+          pageNumber++;
+          cursorY = margin;
+        }
+
+        let currentX = margin;
+        if (alignment === 'center') {
+          let totalWidth = 0;
+          segments.forEach(seg => {
+            totalWidth += doc.getTextWidth(seg.text);
+          });
+          currentX = (pageWidth - totalWidth) / 2;
+        } else if (alignment === 'right') {
+          let totalWidth = 0;
+          segments.forEach(seg => {
+            totalWidth += doc.getTextWidth(seg.text);
+          });
+          currentX = pageWidth - margin - totalWidth;
+        }
+
+        segments.forEach(seg => {
+          if (seg.bold && seg.italic) {
+            doc.setFont('helvetica', 'bolditalic');
+          } else if (seg.bold) {
+            doc.setFont('helvetica', 'bold');
+          } else if (seg.italic) {
+            doc.setFont('helvetica', 'italic');
+          } else {
+            doc.setFont('helvetica', 'normal');
+          }
+
+          doc.text(seg.text, currentX, cursorY);
+
+          if (seg.underline) {
+            const textWidth = doc.getTextWidth(seg.text);
+            doc.line(currentX, cursorY + 1, currentX + textWidth, cursorY + 1);
+          }
+
+          currentX += doc.getTextWidth(seg.text);
+        });
+
+        cursorY += lineHeight;
+      });
+
+      if (addPageNumbers) {
+        doc.setFontSize(10);
+        doc.text(`Page ${pageNumber}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+      }
+
+      // Add watermark if specified
+      if (watermarkText) {
+        const totalPages = doc.getNumberOfPages();
+        for (let i = 1; i <= totalPages; i++) {
+          doc.setPage(i);
+          doc.setFontSize(60);
+          doc.setTextColor(200, 200, 200);
+          doc.text(watermarkText, pageWidth / 2, pageHeight / 2, {
+            align: 'center',
+            angle: 45
+          });
+        }
+      }
+
+      // Get PDF as array buffer
+      const pdfArrayBuffer = doc.output('arraybuffer');
+
+      // If password protection is needed, use pdf-lib
+      if (pdfPassword) {
+        const pdfDoc = await PDFDocument.load(pdfArrayBuffer);
+
+        // Note: pdf-lib doesn't support encryption directly in browser
+        // This is a limitation - we'll save without password for now
+        const pdfBytes = await pdfDoc.save();
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const cleanFilename = sanitizeFilename(filename);
+        saveAs(blob, `${cleanFilename}.pdf`);
+        showToast('PDF generated (password protection requires server-side processing)', 'warning');
+      } else {
+        const cleanFilename = sanitizeFilename(filename);
+        doc.save(`${cleanFilename}.pdf`);
+        showToast('PDF generated successfully!', 'success');
+      }
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      showToast('Failed to generate PDF', 'error');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+
   return (
     <div className={`min-h-screen py-12 px-4 sm:px-6 lg:px-8 font-sans transition-colors duration-300 ${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
       <div className="max-w-7xl mx-auto">
@@ -872,6 +1154,42 @@ const Converter = () => {
 
                       {/* Find & Replace */}
                       <button onClick={() => setShowFindReplace(true)} className={`px-3 py-1 text-xs rounded ${darkMode ? 'hover:bg-gray-600 bg-purple-900' : 'hover:bg-purple-100 bg-purple-50'} text-purple-600 dark:text-purple-300`} title="Find & Replace">🔍 Find</button>
+
+                      {/* AI Tools */}
+                      <div className="flex gap-1 border-r pr-2 border-gray-400">
+                        <button onClick={summarizeText} className={`px-3 py-1 text-xs rounded flex items-center gap-1 ${darkMode ? 'hover:bg-gray-600 bg-indigo-900' : 'hover:bg-indigo-100 bg-indigo-50'} text-indigo-600 dark:text-indigo-300`} title="AI Summarize">
+                          <Sparkles className="w-3 h-3" /> Summarize
+                        </button>
+                        <button onClick={autoDetectHeadings} className={`px-3 py-1 text-xs rounded flex items-center gap-1 ${darkMode ? 'hover:bg-gray-600 bg-indigo-900' : 'hover:bg-indigo-100 bg-indigo-50'} text-indigo-600 dark:text-indigo-300`} title="Auto-detect Headings">
+                          <Hash className="w-3 h-3" /> Auto H
+                        </button>
+                      </div>
+
+                      {/* Advanced Formatting */}
+                      <div className="flex gap-1 border-r pr-2 border-gray-400">
+                        <button onClick={() => setShowTableEditor(true)} className={`px-3 py-1 text-xs rounded flex items-center gap-1 ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="Insert Table">
+                          <Table className="w-3 h-3" /> Table
+                        </button>
+                        <button onClick={insertCodeBlock} className={`px-3 py-1 text-xs rounded flex items-center gap-1 ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="Insert Code Block">
+                          <Code className="w-3 h-3" /> Code
+                        </button>
+                        <button onClick={insertBlockQuote} className={`px-3 py-1 text-xs rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="Insert Quote">
+                          " Quote
+                        </button>
+                        <button onClick={insertHorizontalRule} className={`px-3 py-1 text-xs rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="Horizontal Rule">
+                          ─ HR
+                        </button>
+                      </div>
+
+                      {/* Sharing & Presets */}
+                      <div className="flex gap-1 border-r pr-2 border-gray-400">
+                        <button onClick={generateQRCode} disabled={!text} className={`px-3 py-1 text-xs rounded flex items-center gap-1 ${darkMode ? 'hover:bg-gray-600 bg-green-900' : 'hover:bg-green-100 bg-green-50'} text-green-600 dark:text-green-300 ${!text ? 'opacity-50 cursor-not-allowed' : ''}`} title="Generate QR Code">
+                          <Share2 className="w-3 h-3" /> Share
+                        </button>
+                        <button onClick={() => setShowPresetManager(true)} className={`px-3 py-1 text-xs rounded flex items-center gap-1 ${darkMode ? 'hover:bg-gray-600 bg-orange-900' : 'hover:bg-orange-100 bg-orange-50'} text-orange-600 dark:text-orange-300`} title="Manage Presets">
+                          <Save className="w-3 h-3" /> Presets
+                        </button>
+                      </div>
 
                       {/* Focus Mode */}
                       <button onClick={() => setFocusMode(!focusMode)} className={`px-3 py-1 text-xs rounded ${focusMode ? 'bg-green-600 text-white' : (darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200')}`} title="Focus Mode">
@@ -1160,6 +1478,41 @@ Try keyboard shortcuts:
             </div>
           )
         }
+
+        {/* New Modals */}
+        <ShareModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          qrCodeDataUrl={qrCodeDataUrl}
+          documentName={filename}
+        />
+
+        <PresetManager
+          isOpen={showPresetManager}
+          onClose={() => setShowPresetManager(false)}
+          currentSettings={{
+            fontSize,
+            lineSpacing,
+            alignment,
+            pageNumbers: addPageNumbers,
+            fontFamily,
+            name: ''
+          }}
+          onLoadPreset={loadPreset}
+        />
+
+        <TableEditor
+          isOpen={showTableEditor}
+          onClose={() => setShowTableEditor(false)}
+          onInsert={insertTable}
+        />
+
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          isVisible={toast.visible}
+          onClose={() => setToast({ ...toast, visible: false })}
+        />
       </div>
     </div>
   );
