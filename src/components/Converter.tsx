@@ -680,9 +680,19 @@ const Converter = () => {
     }
   };
 
+  const toggleFullScreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  };
+
   return (
     <div className={`min-h-screen py-12 px-4 sm:px-6 lg:px-8 font-sans transition-colors duration-300 ${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-7xl mx-auto">
 
         <div className="flex justify-between items-start mb-10">
           <div className="text-center flex-1">
@@ -843,18 +853,6 @@ const Converter = () => {
                           Clear
                         </button>
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Office Features Toolbar */}
-                  <div className={`mb-2 p-3 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'}`}>
-                    <div className="flex flex-wrap gap-2 items-center">
-                      {/* Headings */}
-                      <div className="flex gap-1 border-r pr-2 border-gray-400">
-                        <button onClick={() => insertHeading(1)} className={`px-2 py-1 text-xs font-bold rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="Heading 1">H1</button>
-                        <button onClick={() => insertHeading(2)} className={`px-2 py-1 text-xs font-bold rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="Heading 2">H2</button>
-                        <button onClick={() => insertHeading(3)} className={`px-2 py-1 text-xs font-bold rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="Heading 3">H3</button>
-                      </div>
 
                       {/* Lists */}
                       <div className="flex gap-1 border-r pr-2 border-gray-400">
@@ -871,106 +869,124 @@ const Converter = () => {
 
                       {/* Insert Link */}
                       <button onClick={insertLink} className={`px-3 py-1 text-xs rounded ${darkMode ? 'hover:bg-gray-600 bg-blue-900' : 'hover:bg-blue-100 bg-blue-50'} text-blue-600 dark:text-blue-300`} title="Insert Link">🔗 Link</button>
-                      placeholder="Word goal"
-                      value={wordGoal || ''}
-                      onChange={(e) => setWordGoal(Number(e.target.value))}
-                      className={`w-24 px-2 py-1 text-xs rounded border ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'border-gray-300'}`}
+
+                      {/* Find & Replace */}
+                      <button onClick={() => setShowFindReplace(true)} className={`px-3 py-1 text-xs rounded ${darkMode ? 'hover:bg-gray-600 bg-purple-900' : 'hover:bg-purple-100 bg-purple-50'} text-purple-600 dark:text-purple-300`} title="Find & Replace">🔍 Find</button>
+
+                      {/* Focus Mode */}
+                      <button onClick={() => setFocusMode(!focusMode)} className={`px-3 py-1 text-xs rounded ${focusMode ? 'bg-green-600 text-white' : (darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200')}`} title="Focus Mode">
+                        {focusMode ? '👁️ Exit Focus' : '🎯 Focus'}
+                      </button>
+
+                      {/* Full Screen */}
+                      <button onClick={toggleFullScreen} className={`px-3 py-1 text-xs rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="Full Screen">
+                        <Maximize className="w-4 h-4 inline mr-1" /> Full Screen
+                      </button>
+
+                      {/* Word Goal */}
+                      <div className="flex items-center gap-2 ml-auto">
+                        <input
+                          type="number"
+                          placeholder="Word goal"
+                          value={wordGoal || ''}
+                          onChange={(e) => setWordGoal(Number(e.target.value))}
+                          className={`w-24 px-2 py-1 text-xs rounded border ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'border-gray-300'}`}
                         />
-                      {wordGoal > 0 && (
-                        <div className="flex items-center gap-1">
-                          <div className="w-20 h-2 bg-gray-300 dark:bg-gray-600 rounded-full overflow-hidden">
-                            <div
-                              className={`h-full ${stats.words >= wordGoal ? 'bg-green-500' : 'bg-blue-500'}`}
-                              style={{ width: `${Math.min((stats.words / wordGoal) * 100, 100)}%` }}
-                            ></div>
+                        {wordGoal > 0 && (
+                          <div className="flex items-center gap-1">
+                            <div className="w-20 h-2 bg-gray-300 dark:bg-gray-600 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full ${stats.words >= wordGoal ? 'bg-green-500' : 'bg-blue-500'}`}
+                                style={{ width: `${Math.min((stats.words / wordGoal) * 100, 100)}%` }}
+                              ></div>
+                            </div>
+                            <span className="text-xs">{Math.round((stats.words / wordGoal) * 100)}%</span>
                           </div>
-                          <span className="text-xs">{Math.round((stats.words / wordGoal) * 100)}%</span>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Formatting Toolbar */}
-                <div className={`flex flex-wrap items-center gap-2 mb-2 p-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'}`}>
-                  <select
-                    value={fontFamily}
-                    onChange={(e) => setFontFamily(e.target.value)}
-                    className={`h-9 text-sm rounded-md border-none focus:ring-2 focus:ring-indigo-500 ${darkMode ? 'bg-gray-600 text-white' : 'bg-white text-gray-900'}`}
-                    title="Font Family"
-                  >
-                    <option value="Arial">Arial</option>
-                    <option value="Times New Roman">Times New Roman</option>
-                    <option value="Courier New">Courier New</option>
-                    <option value="Georgia">Georgia</option>
-                  </select>
+                  {/* Formatting Toolbar */}
+                  <div className={`flex flex-wrap items-center gap-2 mb-2 p-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'}`}>
+                    <select
+                      value={fontFamily}
+                      onChange={(e) => setFontFamily(e.target.value)}
+                      className={`h-9 text-sm rounded-md border-none focus:ring-2 focus:ring-indigo-500 ${darkMode ? 'bg-gray-600 text-white' : 'bg-white text-gray-900'}`}
+                      title="Font Family"
+                    >
+                      <option value="Arial">Arial</option>
+                      <option value="Times New Roman">Times New Roman</option>
+                      <option value="Courier New">Courier New</option>
+                      <option value="Georgia">Georgia</option>
+                    </select>
 
-                  <select
-                    value={fontSize}
-                    onChange={(e) => setFontSize(Number(e.target.value))}
-                    className={`h-9 text-sm rounded-md border-none focus:ring-2 focus:ring-indigo-500 ${darkMode ? 'bg-gray-600 text-white' : 'bg-white text-gray-900'}`}
-                    title="Font Size"
-                  >
-                    <option value={10}>10</option>
-                    <option value={11}>11</option>
-                    <option value={12}>12</option>
-                    <option value={14}>14</option>
-                    <option value={16}>16</option>
-                    <option value={18}>18</option>
-                    <option value={20}>20</option>
-                    <option value={24}>24</option>
-                  </select>
+                    <select
+                      value={fontSize}
+                      onChange={(e) => setFontSize(Number(e.target.value))}
+                      className={`h-9 text-sm rounded-md border-none focus:ring-2 focus:ring-indigo-500 ${darkMode ? 'bg-gray-600 text-white' : 'bg-white text-gray-900'}`}
+                      title="Font Size"
+                    >
+                      <option value={10}>10</option>
+                      <option value={11}>11</option>
+                      <option value={12}>12</option>
+                      <option value={14}>14</option>
+                      <option value={16}>16</option>
+                      <option value={18}>18</option>
+                      <option value={20}>20</option>
+                      <option value={24}>24</option>
+                    </select>
 
-                  <select
-                    value={lineSpacing}
-                    onChange={(e) => setLineSpacing(Number(e.target.value))}
-                    className={`h-9 text-sm rounded-md border-none focus:ring-2 focus:ring-indigo-500 ${darkMode ? 'bg-gray-600 text-white' : 'bg-white text-gray-900'}`}
-                    title="Line Spacing"
-                  >
-                    <option value={1}>Single</option>
-                    <option value={1.5}>1.5</option>
-                    <option value={2}>Double</option>
-                  </select>
-                  <div className={`w-px h-6 mx-1 ${darkMode ? 'bg-gray-600' : 'bg-gray-300'}`}></div>
-                  <button
-                    onClick={() => applyFormatting('bold')}
-                    className={`p-2 rounded hover:bg-opacity-80 transition-all ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`}
-                    title="Bold (select text first)"
-                  >
-                    <Bold className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => applyFormatting('italic')}
-                    className={`p-2 rounded hover:bg-opacity-80 transition-all ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`}
-                    title="Italic (select text first)"
-                  >
-                    <Italic className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => applyFormatting('underline')}
-                    className={`p-2 rounded hover:bg-opacity-80 transition-all ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`}
-                    title="Underline (select text first)"
-                  >
-                    <Underline className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setAddPageNumbers(!addPageNumbers)}
-                    className={`p-2 rounded hover:bg-opacity-80 transition-all ${addPageNumbers ? (darkMode ? 'bg-gray-600' : 'bg-gray-200') : ''} ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`}
-                    title="Toggle Page Numbers"
-                  >
-                    <Hash className="w-4 h-4" />
-                  </button>
-                  <div className={`ml-2 px-3 py-1 text-xs flex items-center ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    Select text and click a button to format
+                    <select
+                      value={lineSpacing}
+                      onChange={(e) => setLineSpacing(Number(e.target.value))}
+                      className={`h-9 text-sm rounded-md border-none focus:ring-2 focus:ring-indigo-500 ${darkMode ? 'bg-gray-600 text-white' : 'bg-white text-gray-900'}`}
+                      title="Line Spacing"
+                    >
+                      <option value={1}>Single</option>
+                      <option value={1.5}>1.5</option>
+                      <option value={2}>Double</option>
+                    </select>
+                    <div className={`w-px h-6 mx-1 ${darkMode ? 'bg-gray-600' : 'bg-gray-300'}`}></div>
+                    <button
+                      onClick={() => applyFormatting('bold')}
+                      className={`p-2 rounded hover:bg-opacity-80 transition-all ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`}
+                      title="Bold (select text first)"
+                    >
+                      <Bold className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => applyFormatting('italic')}
+                      className={`p-2 rounded hover:bg-opacity-80 transition-all ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`}
+                      title="Italic (select text first)"
+                    >
+                      <Italic className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => applyFormatting('underline')}
+                      className={`p-2 rounded hover:bg-opacity-80 transition-all ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`}
+                      title="Underline (select text first)"
+                    >
+                      <Underline className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setAddPageNumbers(!addPageNumbers)}
+                      className={`p-2 rounded hover:bg-opacity-80 transition-all ${addPageNumbers ? (darkMode ? 'bg-gray-600' : 'bg-gray-200') : ''} ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`}
+                      title="Toggle Page Numbers"
+                    >
+                      <Hash className="w-4 h-4" />
+                    </button>
+                    <div className={`ml-2 px-3 py-1 text-xs flex items-center ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                      Select text and click a button to format
+                    </div>
                   </div>
-                </div>
 
-                <textarea
-                  ref={textareaRef}
-                  id="content"
-                  rows={20}
-                  className={`block w-full rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 sm:text-sm p-4 border resize-y font-mono ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-indigo-400' : 'border-gray-300 text-gray-800 focus:border-indigo-500'}`}
-                  placeholder="Paste your notes here... (e.g., project report, study notes, assignment)
+                  <textarea
+                    ref={textareaRef}
+                    id="content"
+                    rows={20}
+                    className={`block w-full rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 sm:text-sm p-4 border resize-y font-mono ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-indigo-400' : 'border-gray-300 text-gray-800 focus:border-indigo-500'}`}
+                    placeholder="Paste your notes here... (e.g., project report, study notes, assignment)
 
 Try keyboard shortcuts:
 • Ctrl+B for **bold**
@@ -978,168 +994,176 @@ Try keyboard shortcuts:
 • Ctrl+U for __underline__
 • Ctrl+S to save as PDF
 • Press ? for more shortcuts"
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  style={{ textAlign: alignment as any, fontSize: `${fontSize}px`, lineHeight: lineSpacing }}
-                />
-              </div>
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    style={{ textAlign: alignment as any, fontSize: `${fontSize}px`, lineHeight: lineSpacing }}
+                  />
+                </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-8">
-                <button
-                  onClick={handleGeneratePDF}
-                  disabled={!text || isGenerating}
-                  className={`flex items-center justify-center px-4 py-3 border border-transparent text-sm font-medium rounded-xl text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 ${(!text || isGenerating) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  <FileText className="w-5 h-5 mr-2" />
-                  PDF
-                </button>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-8">
+                  <button
+                    onClick={handleGeneratePDF}
+                    disabled={!text || isGenerating}
+                    className={`flex items-center justify-center px-4 py-3 border border-transparent text-sm font-medium rounded-xl text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 ${(!text || isGenerating) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <FileText className="w-5 h-5 mr-2" />
+                    PDF
+                  </button>
 
-                <button
-                  onClick={handleGenerateDOCX}
-                  disabled={!text || isGenerating}
-                  className={`flex items-center justify-center px-4 py-3 border border-transparent text-sm font-medium rounded-xl text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 ${(!text || isGenerating) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  <FileType className="w-5 h-5 mr-2" />
-                  DOCX
-                </button>
+                  <button
+                    onClick={handleGenerateDOCX}
+                    disabled={!text || isGenerating}
+                    className={`flex items-center justify-center px-4 py-3 border border-transparent text-sm font-medium rounded-xl text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 ${(!text || isGenerating) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <FileType className="w-5 h-5 mr-2" />
+                    DOCX
+                  </button>
 
-                <button
-                  onClick={handleDownloadTXT}
-                  disabled={!text}
-                  className={`flex items-center justify-center px-4 py-3 border border-transparent text-sm font-medium rounded-xl text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 ${!text ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  <Download className="w-5 h-5 mr-2" />
-                  TXT
-                </button>
+                  <button
+                    onClick={handleDownloadTXT}
+                    disabled={!text}
+                    className={`flex items-center justify-center px-4 py-3 border border-transparent text-sm font-medium rounded-xl text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 ${!text ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <Download className="w-5 h-5 mr-2" />
+                    TXT
+                  </button>
 
-                <button
-                  onClick={copyToClipboard}
-                  disabled={!text}
-                  className={`flex items-center justify-center px-4 py-3 border border-transparent text-sm font-medium rounded-xl text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 ${!text ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  <Copy className="w-5 h-5 mr-2" />
-                  Copy
-                </button>
-              </div>
-            </div>
-
-            <div className={`px-8 py-4 border-t flex justify-between items-center text-sm ${darkMode ? 'bg-gray-900 border-gray-700 text-gray-400' : 'bg-gray-50 border-gray-100 text-gray-500'}`}>
-              <span>100% Client-side processing</span>
-              <div className="flex gap-4">
-                <span className="flex items-center"><FileCode className="w-4 h-4 mr-1" /> No Backend</span>
-                <span className="flex items-center"><Download className="w-4 h-4 mr-1" /> Instant Download</span>
+                  <button
+                    onClick={copyToClipboard}
+                    disabled={!text}
+                    className={`flex items-center justify-center px-4 py-3 border border-transparent text-sm font-medium rounded-xl text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 ${!text ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <Copy className="w-5 h-5 mr-2" />
+                    Copy
+                  </button>
+                </div>
               </div>
             </div>
           </div>
+
         </div>
+        <div className={`px-8 py-4 border-t flex justify-between items-center text-sm ${darkMode ? 'bg-gray-900 border-gray-700 text-gray-400' : 'bg-gray-50 border-gray-100 text-gray-500'}`}>
+          <span>100% Client-side processing</span>
+          <div className="flex gap-4">
+            <span className="flex items-center"><FileCode className="w-4 h-4 mr-1" /> No Backend</span>
+            <span className="flex items-center"><Download className="w-4 h-4 mr-1" /> Instant Download</span>
+          </div>
+        </div>
+
+
+        {/* Keyboard Shortcuts Modal */}
+        {
+          showShortcuts && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowShortcuts(false)}>
+              <div className={`max-w-2xl w-full rounded-xl p-6 ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`} onClick={(e) => e.stopPropagation()}>
+                <h2 className="text-2xl font-bold mb-4">⌨️ Keyboard Shortcuts</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <h3 className="font-semibold mb-2 text-indigo-500">Formatting</h3>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between"><span>Bold</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+B</kbd></div>
+                      <div className="flex justify-between"><span>Italic</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+I</kbd></div>
+                      <div className="flex justify-between"><span>Underline</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+U</kbd></div>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-2 text-green-500">File Operations</h3>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between"><span>Save as PDF</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+S</kbd></div>
+                      <div className="flex justify-between"><span>Save as DOCX</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+Shift+S</kbd></div>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-2 text-purple-500">Editing</h3>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between"><span>Undo</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+Z</kbd></div>
+                      <div className="flex justify-between"><span>Redo</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+Y</kbd></div>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-2 text-blue-500">Help</h3>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between"><span>Show shortcuts</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">?</kbd></div>
+                    </div>
+                  </div>
+                </div>
+                <button onClick={() => setShowShortcuts(false)} className="mt-6 w-full py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+                  Close
+                </button>
+              </div>
+            </div>
+          )
+        }
+
+        {/* Find & Replace Modal */}
+        {
+          showFindReplace && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowFindReplace(false)}>
+              <div className={`max-w-md w-full rounded-xl p-6 ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`} onClick={(e) => e.stopPropagation()}>
+                <h2 className="text-2xl font-bold mb-4">🔍 Find & Replace</h2>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Find</label>
+                    <input
+                      type="text"
+                      value={findText}
+                      onChange={(e) => setFindText(e.target.value)}
+                      className={`w-full px-3 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'}`}
+                      placeholder="Enter text to find..."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Replace with</label>
+                    <input
+                      type="text"
+                      value={replaceText}
+                      onChange={(e) => setReplaceText(e.target.value)}
+                      className={`w-full px-3 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'}`}
+                      placeholder="Enter replacement text..."
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleFindReplace(false)}
+                      className="flex-1 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Replace Next
+                    </button>
+                    <button
+                      onClick={() => handleFindReplace(true)}
+                      className="flex-1 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                    >
+                      Replace All
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => setShowFindReplace(false)}
+                    className="w-full py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          )
+        }
+
+        {/* Loading Spinner */}
+        {
+          isGenerating && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className={`rounded-xl p-8 flex flex-col items-center ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
+                <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-indigo-600 mb-4"></div>
+                <p className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Generating your document...</p>
+                <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Please wait</p>
+              </div>
+            </div>
+          )
+        }
       </div>
-
-      {/* Keyboard Shortcuts Modal */}
-      {showShortcuts && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowShortcuts(false)}>
-          <div className={`max-w-2xl w-full rounded-xl p-6 ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`} onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-2xl font-bold mb-4">⌨️ Keyboard Shortcuts</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <h3 className="font-semibold mb-2 text-indigo-500">Formatting</h3>
-                <div className="space-y-1 text-sm">
-                  <div className="flex justify-between"><span>Bold</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+B</kbd></div>
-                  <div className="flex justify-between"><span>Italic</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+I</kbd></div>
-                  <div className="flex justify-between"><span>Underline</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+U</kbd></div>
-                </div>
-              </div>
-              <div>
-                <h3 className="font-semibold mb-2 text-green-500">File Operations</h3>
-                <div className="space-y-1 text-sm">
-                  <div className="flex justify-between"><span>Save as PDF</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+S</kbd></div>
-                  <div className="flex justify-between"><span>Save as DOCX</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+Shift+S</kbd></div>
-                </div>
-              </div>
-              <div>
-                <h3 className="font-semibold mb-2 text-purple-500">Editing</h3>
-                <div className="space-y-1 text-sm">
-                  <div className="flex justify-between"><span>Undo</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+Z</kbd></div>
-                  <div className="flex justify-between"><span>Redo</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+Y</kbd></div>
-                </div>
-              </div>
-              <div>
-                <h3 className="font-semibold mb-2 text-blue-500">Help</h3>
-                <div className="space-y-1 text-sm">
-                  <div className="flex justify-between"><span>Show shortcuts</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">?</kbd></div>
-                </div>
-              </div>
-            </div>
-            <button onClick={() => setShowShortcuts(false)} className="mt-6 w-full py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
-              Close
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Find & Replace Modal */}
-      {showFindReplace && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowFindReplace(false)}>
-          <div className={`max-w-md w-full rounded-xl p-6 ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`} onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-2xl font-bold mb-4">🔍 Find & Replace</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Find</label>
-                <input
-                  type="text"
-                  value={findText}
-                  onChange={(e) => setFindText(e.target.value)}
-                  className={`w-full px-3 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'}`}
-                  placeholder="Enter text to find..."
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Replace with</label>
-                <input
-                  type="text"
-                  value={replaceText}
-                  onChange={(e) => setReplaceText(e.target.value)}
-                  className={`w-full px-3 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'}`}
-                  placeholder="Enter replacement text..."
-                />
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleFindReplace(false)}
-                  className="flex-1 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Replace Next
-                </button>
-                <button
-                  onClick={() => handleFindReplace(true)}
-                  className="flex-1 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-                >
-                  Replace All
-                </button>
-              </div>
-              <button
-                onClick={() => setShowFindReplace(false)}
-                className="w-full py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Loading Spinner */}
-      {isGenerating && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className={`rounded-xl p-8 flex flex-col items-center ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
-            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-indigo-600 mb-4"></div>
-            <p className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Generating your document...</p>
-            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Please wait</p>
-          </div>
-        </div>
-      )}
     </div>
-    </div >
   );
 };
 
 export default Converter;
+
