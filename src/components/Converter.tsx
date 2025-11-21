@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FileText, FileType, Download, FileCode, Moon, Sun, AlignLeft, AlignCenter, AlignRight, Copy, BookOpen, Settings, Bold, Italic, Underline } from 'lucide-react';
+import { FileText, FileType, Download, FileCode, Moon, Sun, AlignLeft, AlignCenter, AlignRight, Copy, BookOpen, Settings, Bold, Italic, Underline, Maximize, Minimize, Hash } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel, UnderlineType } from 'docx';
 import { saveAs } from 'file-saver';
@@ -697,13 +697,7 @@ const Converter = () => {
             </p>
           </div>
           <div className="flex gap-2">
-            <button
-              onClick={() => setShowSettings(!showSettings)}
-              className={`p-2 rounded-full ${darkMode ? 'bg-gray-800 text-blue-400 hover:bg-gray-700' : 'bg-white text-gray-600 hover:bg-gray-100'} shadow-md transition-all`}
-              title="Settings"
-            >
-              <Settings className="w-6 h-6" />
-            </button>
+
             <button
               onClick={() => setDarkMode(!darkMode)}
               className={`p-2 rounded-full ${darkMode ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' : 'bg-white text-gray-600 hover:bg-gray-100'} shadow-md transition-all`}
@@ -715,267 +709,268 @@ const Converter = () => {
         </div>
 
         {/* Templates Section */}
-        <div className={`mb-6 p-4 rounded-xl border ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-          <div className="flex items-center gap-2 mb-3">
-            <BookOpen className="w-5 h-5 text-indigo-500" />
-            <h3 className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Quick Templates</h3>
-          </div>
-
-          <div className="mb-3">
-            <p className={`text-xs font-medium mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Academic</p>
-            <div className="flex flex-wrap gap-2">
-              <button onClick={() => loadTemplate('blank')} className="px-3 py-1.5 rounded-lg bg-gray-500 text-white hover:bg-gray-600 transition-all text-xs">Blank</button>
-              <button onClick={() => loadTemplate('essay')} className="px-3 py-1.5 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-all text-xs">Essay</button>
-              <button onClick={() => loadTemplate('report')} className="px-3 py-1.5 rounded-lg bg-green-500 text-white hover:bg-green-600 transition-all text-xs">Report</button>
-              <button onClick={() => loadTemplate('assignment')} className="px-3 py-1.5 rounded-lg bg-purple-500 text-white hover:bg-purple-600 transition-all text-xs">Assignment</button>
-            </div>
-          </div>
-
-          <div>
-            <p className={`text-xs font-medium mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Letters</p>
-            <div className="flex flex-wrap gap-2">
-              <button onClick={() => loadTemplate('formalLetter')} className="px-3 py-1.5 rounded-lg bg-indigo-500 text-white hover:bg-indigo-600 transition-all text-xs">Formal Letter</button>
-              <button onClick={() => loadTemplate('coverLetter')} className="px-3 py-1.5 rounded-lg bg-pink-500 text-white hover:bg-pink-600 transition-all text-xs">Cover Letter</button>
-              <button onClick={() => loadTemplate('requestLetter')} className="px-3 py-1.5 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-all text-xs">Request Letter</button>
-              <button onClick={() => loadTemplate('recommendationRequest')} className="px-3 py-1.5 rounded-lg bg-teal-500 text-white hover:bg-teal-600 transition-all text-xs">Recommendation</button>
-              <button onClick={() => loadTemplate('complaintLetter')} className="px-3 py-1.5 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-all text-xs">Complaint</button>
-            </div>
-          </div>
-        </div>
-
-        {/* Settings Panel */}
-        {showSettings && (
-          <div className={`mb-6 p-4 rounded-xl border ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-            <h3 className={`font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Document Settings</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div>
-                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Font Family</label>
-                <select value={fontFamily} onChange={(e) => setFontFamily(e.target.value)} className={`w-full rounded-lg px-3 py-2 border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'}`}>
-                  <option value="Arial">Arial</option>
-                  <option value="Times New Roman">Times New Roman</option>
-                  <option value="Courier New">Courier New</option>
-                  <option value="Georgia">Georgia</option>
-                </select>
+        <div className="flex flex-col md:flex-row gap-6">
+          {/* Sidebar - Letter Types */}
+          <div className="w-full md:w-64 flex-shrink-0">
+            <div className={`p-4 rounded-xl border sticky top-4 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+              <div className="flex items-center gap-2 mb-4">
+                <BookOpen className="w-5 h-5 text-indigo-500" />
+                <h3 className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Letter Types</h3>
               </div>
-              <div>
-                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Font Size</label>
-                <select value={fontSize} onChange={(e) => setFontSize(Number(e.target.value))} className={`w-full rounded-lg px-3 py-2 border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'}`}>
-                  <option value={10}>10pt</option>
-                  <option value={11}>11pt</option>
-                  <option value={12}>12pt (Default)</option>
-                  <option value={14}>14pt</option>
-                  <option value={16}>16pt</option>
-                </select>
-              </div>
-              <div>
-                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Line Spacing</label>
-                <select value={lineSpacing} onChange={(e) => setLineSpacing(Number(e.target.value))} className={`w-full rounded-lg px-3 py-2 border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'}`}>
-                  <option value={1}>Single</option>
-                  <option value={1.5}>1.5 (Default)</option>
-                  <option value={2}>Double</option>
-                </select>
-              </div>
-              <div>
-                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Page Numbers</label>
-                <label className="flex items-center cursor-pointer">
-                  <input type="checkbox" checked={addPageNumbers} onChange={(e) => setAddPageNumbers(e.target.checked)} className="mr-2" />
-                  <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Add page numbers</span>
-                </label>
-              </div>
-            </div>
-          </div>
-        )}
 
-        <div className={`rounded-2xl shadow-xl overflow-hidden border ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'}`}>
-          <div className="p-8">
+              <div className="space-y-6">
+                <div>
+                  <p className={`text-xs font-medium mb-2 uppercase tracking-wider ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Academic</p>
+                  <div className="flex flex-col gap-2">
+                    <button onClick={() => loadTemplate('blank')} className={`text-left px-3 py-2 rounded-lg text-sm transition-all ${darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}>Blank Document</button>
+                    <button onClick={() => loadTemplate('essay')} className={`text-left px-3 py-2 rounded-lg text-sm transition-all ${darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}>Essay</button>
+                    <button onClick={() => loadTemplate('report')} className={`text-left px-3 py-2 rounded-lg text-sm transition-all ${darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}>Report</button>
+                    <button onClick={() => loadTemplate('assignment')} className={`text-left px-3 py-2 rounded-lg text-sm transition-all ${darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}>Assignment</button>
+                  </div>
+                </div>
 
-            <div className="flex flex-col sm:flex-row gap-6 mb-6">
-              <div className="flex-1">
-                <label htmlFor="filename" className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Filename (without extension)
-                </label>
-                <div className="relative rounded-md shadow-sm">
-                  <input
-                    type="text"
-                    id="filename"
-                    className={`block w-full rounded-lg pl-4 pr-12 py-3 focus:ring-indigo-500 sm:text-sm border ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-indigo-400' : 'border-gray-300 focus:border-indigo-500'}`}
-                    placeholder="output"
-                    value={filename}
-                    onChange={(e) => setFilename(e.target.value)}
-                  />
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                    <span className={`sm:text-sm ${darkMode ? 'text-gray-400' : 'text-gray-400'}`}>.pdf / .docx</span>
+                <div>
+                  <p className={`text-xs font-medium mb-2 uppercase tracking-wider ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Professional Letters</p>
+                  <div className="flex flex-col gap-2">
+                    <button onClick={() => loadTemplate('formalLetter')} className={`text-left px-3 py-2 rounded-lg text-sm transition-all ${darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}>Formal Letter</button>
+                    <button onClick={() => loadTemplate('coverLetter')} className={`text-left px-3 py-2 rounded-lg text-sm transition-all ${darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}>Cover Letter</button>
+                    <button onClick={() => loadTemplate('requestLetter')} className={`text-left px-3 py-2 rounded-lg text-sm transition-all ${darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}>Request Letter</button>
+                    <button onClick={() => loadTemplate('recommendationRequest')} className={`text-left px-3 py-2 rounded-lg text-sm transition-all ${darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}>Recommendation</button>
+                    <button onClick={() => loadTemplate('complaintLetter')} className={`text-left px-3 py-2 rounded-lg text-sm transition-all ${darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}>Complaint</button>
                   </div>
                 </div>
               </div>
-
-              <div>
-                <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Text Alignment
-                </label>
-                <div className={`flex rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'} p-1`}>
-                  <button
-                    onClick={() => setAlignment('left')}
-                    className={`p-2 rounded-md transition-all ${alignment === 'left' ? (darkMode ? 'bg-gray-600 text-white shadow-sm' : 'bg-white text-indigo-600 shadow-sm') : (darkMode ? 'text-gray-400 hover:text-gray-200' : 'text-gray-500 hover:text-gray-700')}`}
-                  >
-                    <AlignLeft className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={() => setAlignment('center')}
-                    className={`p-2 rounded-md transition-all ${alignment === 'center' ? (darkMode ? 'bg-gray-600 text-white shadow-sm' : 'bg-white text-indigo-600 shadow-sm') : (darkMode ? 'text-gray-400 hover:text-gray-200' : 'text-gray-500 hover:text-gray-700')}`}
-                  >
-                    <AlignCenter className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={() => setAlignment('right')}
-                    className={`p-2 rounded-md transition-all ${alignment === 'right' ? (darkMode ? 'bg-gray-600 text-white shadow-sm' : 'bg-white text-indigo-600 shadow-sm') : (darkMode ? 'text-gray-400 hover:text-gray-200' : 'text-gray-500 hover:text-gray-700')}`}
-                  >
-                    <AlignRight className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
             </div>
+          </div>
 
-            <div className="mb-4">
-              <div className="flex justify-between items-center mb-2">
-                <label htmlFor="content" className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Your Content
-                </label>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'} flex items-center gap-3`}>
-                    <span>{stats.words} words</span>
-                    <span>•</span>
-                    <span>{stats.chars} chars</span>
-                    <span>•</span>
-                    <span>{stats.paragraphs} ¶</span>
-                    <span>•</span>
-                    <span>{stats.sentences} sentences</span>
-                    {stats.readingTime > 0 && (
-                      <>
+          {/* Main Content Area */}
+          <div className="flex-1">
+
+
+
+            <div className={`rounded-2xl shadow-xl overflow-hidden border ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'}`}>
+              <div className="p-8">
+
+                <div className="flex flex-col sm:flex-row gap-6 mb-6">
+                  <div className="flex-1">
+                    <label htmlFor="filename" className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Filename (without extension)
+                    </label>
+                    <div className="relative rounded-md shadow-sm">
+                      <input
+                        type="text"
+                        id="filename"
+                        className={`block w-full rounded-lg pl-4 pr-12 py-3 focus:ring-indigo-500 sm:text-sm border ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-indigo-400' : 'border-gray-300 focus:border-indigo-500'}`}
+                        placeholder="output"
+                        value={filename}
+                        onChange={(e) => setFilename(e.target.value)}
+                      />
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                        <span className={`sm:text-sm ${darkMode ? 'text-gray-400' : 'text-gray-400'}`}>.pdf / .docx</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Text Alignment
+                    </label>
+                    <div className={`flex rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'} p-1`}>
+                      <button
+                        onClick={() => setAlignment('left')}
+                        className={`p-2 rounded-md transition-all ${alignment === 'left' ? (darkMode ? 'bg-gray-600 text-white shadow-sm' : 'bg-white text-indigo-600 shadow-sm') : (darkMode ? 'text-gray-400 hover:text-gray-200' : 'text-gray-500 hover:text-gray-700')}`}
+                      >
+                        <AlignLeft className="w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={() => setAlignment('center')}
+                        className={`p-2 rounded-md transition-all ${alignment === 'center' ? (darkMode ? 'bg-gray-600 text-white shadow-sm' : 'bg-white text-indigo-600 shadow-sm') : (darkMode ? 'text-gray-400 hover:text-gray-200' : 'text-gray-500 hover:text-gray-700')}`}
+                      >
+                        <AlignCenter className="w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={() => setAlignment('right')}
+                        className={`p-2 rounded-md transition-all ${alignment === 'right' ? (darkMode ? 'bg-gray-600 text-white shadow-sm' : 'bg-white text-indigo-600 shadow-sm') : (darkMode ? 'text-gray-400 hover:text-gray-200' : 'text-gray-500 hover:text-gray-700')}`}
+                      >
+                        <AlignRight className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <label htmlFor="content" className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Your Content
+                    </label>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'} flex items-center gap-3`}>
+                        <span>{stats.words} words</span>
                         <span>•</span>
-                        <span>~{stats.readingTime} min read</span>
-                      </>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={undo}
-                      disabled={historyIndex <= 0}
-                      className={`text-xs flex items-center gap-1 px-2 py-1 rounded ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'} ${historyIndex <= 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      title="Undo (Ctrl+Z)"
-                    >
-                      ↶
-                    </button>
-                    <button
-                      onClick={redo}
-                      disabled={historyIndex >= history.length - 1}
-                      className={`text-xs flex items-center gap-1 px-2 py-1 rounded ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'} ${historyIndex >= history.length - 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      title="Redo (Ctrl+Y)"
-                    >
-                      ↷
-                    </button>
-                    <button onClick={copyToClipboard} className={`text-xs flex items-center gap-1 px-2 py-1 rounded ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'}`} title="Copy to clipboard">
-                      <Copy className="w-3 h-3" /> Copy
-                    </button>
-                    <button onClick={clearDraft} className={`text-xs flex items-center gap-1 px-2 py-1 rounded ${darkMode ? 'bg-red-900 hover:bg-red-800 text-red-200' : 'bg-red-100 hover:bg-red-200 text-red-700'}`} title="Clear all text">
-                      Clear
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Office Features Toolbar */}
-              <div className={`mb-2 p-3 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'}`}>
-                <div className="flex flex-wrap gap-2 items-center">
-                  {/* Headings */}
-                  <div className="flex gap-1 border-r pr-2 border-gray-400">
-                    <button onClick={() => insertHeading(1)} className={`px-2 py-1 text-xs font-bold rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="Heading 1">H1</button>
-                    <button onClick={() => insertHeading(2)} className={`px-2 py-1 text-xs font-bold rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="Heading 2">H2</button>
-                    <button onClick={() => insertHeading(3)} className={`px-2 py-1 text-xs font-bold rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="Heading 3">H3</button>
+                        <span>{stats.chars} chars</span>
+                        <span>•</span>
+                        <span>{stats.paragraphs} ¶</span>
+                        <span>•</span>
+                        <span>{stats.sentences} sentences</span>
+                        {stats.readingTime > 0 && (
+                          <>
+                            <span>•</span>
+                            <span>~{stats.readingTime} min read</span>
+                          </>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={undo}
+                          disabled={historyIndex <= 0}
+                          className={`text-xs flex items-center gap-1 px-2 py-1 rounded ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'} ${historyIndex <= 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          title="Undo (Ctrl+Z)"
+                        >
+                          ↶
+                        </button>
+                        <button
+                          onClick={redo}
+                          disabled={historyIndex >= history.length - 1}
+                          className={`text-xs flex items-center gap-1 px-2 py-1 rounded ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'} ${historyIndex >= history.length - 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          title="Redo (Ctrl+Y)"
+                        >
+                          ↷
+                        </button>
+                        <button onClick={copyToClipboard} className={`text-xs flex items-center gap-1 px-2 py-1 rounded ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'}`} title="Copy to clipboard">
+                          <Copy className="w-3 h-3" /> Copy
+                        </button>
+                        <button onClick={clearDraft} className={`text-xs flex items-center gap-1 px-2 py-1 rounded ${darkMode ? 'bg-red-900 hover:bg-red-800 text-red-200' : 'bg-red-100 hover:bg-red-200 text-red-700'}`} title="Clear all text">
+                          Clear
+                        </button>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Lists */}
-                  <div className="flex gap-1 border-r pr-2 border-gray-400">
-                    <button onClick={() => insertList('bullet')} className={`px-2 py-1 text-xs rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="Bullet List">• List</button>
-                    <button onClick={() => insertList('numbered')} className={`px-2 py-1 text-xs rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="Numbered List">1. List</button>
-                  </div>
+                  {/* Office Features Toolbar */}
+                  <div className={`mb-2 p-3 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'}`}>
+                    <div className="flex flex-wrap gap-2 items-center">
+                      {/* Headings */}
+                      <div className="flex gap-1 border-r pr-2 border-gray-400">
+                        <button onClick={() => insertHeading(1)} className={`px-2 py-1 text-xs font-bold rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="Heading 1">H1</button>
+                        <button onClick={() => insertHeading(2)} className={`px-2 py-1 text-xs font-bold rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="Heading 2">H2</button>
+                        <button onClick={() => insertHeading(3)} className={`px-2 py-1 text-xs font-bold rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="Heading 3">H3</button>
+                      </div>
 
-                  {/* Text Case */}
-                  <div className="flex gap-1 border-r pr-2 border-gray-400">
-                    <button onClick={() => changeCase('upper')} className={`px-2 py-1 text-xs rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="UPPERCASE">AA</button>
-                    <button onClick={() => changeCase('lower')} className={`px-2 py-1 text-xs rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="lowercase">aa</button>
-                    <button onClick={() => changeCase('title')} className={`px-2 py-1 text-xs rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="Title Case">Aa</button>
-                  </div>
+                      {/* Lists */}
+                      <div className="flex gap-1 border-r pr-2 border-gray-400">
+                        <button onClick={() => insertList('bullet')} className={`px-2 py-1 text-xs rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="Bullet List">• List</button>
+                        <button onClick={() => insertList('numbered')} className={`px-2 py-1 text-xs rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="Numbered List">1. List</button>
+                      </div>
 
-                  {/* Insert Link */}
-                  <button onClick={insertLink} className={`px-3 py-1 text-xs rounded ${darkMode ? 'hover:bg-gray-600 bg-blue-900' : 'hover:bg-blue-100 bg-blue-50'} text-blue-600 dark:text-blue-300`} title="Insert Link">🔗 Link</button>
+                      {/* Text Case */}
+                      <div className="flex gap-1 border-r pr-2 border-gray-400">
+                        <button onClick={() => changeCase('upper')} className={`px-2 py-1 text-xs rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="UPPERCASE">AA</button>
+                        <button onClick={() => changeCase('lower')} className={`px-2 py-1 text-xs rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="lowercase">aa</button>
+                        <button onClick={() => changeCase('title')} className={`px-2 py-1 text-xs rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="Title Case">Aa</button>
+                      </div>
 
-                  {/* Find & Replace */}
-                  <button onClick={() => setShowFindReplace(true)} className={`px-3 py-1 text-xs rounded ${darkMode ? 'hover:bg-gray-600 bg-purple-900' : 'hover:bg-purple-100 bg-purple-50'} text-purple-600 dark:text-purple-300`} title="Find & Replace">🔍 Find</button>
-
-                  {/* Focus Mode */}
-                  <button onClick={() => setFocusMode(!focusMode)} className={`px-3 py-1 text-xs rounded ${focusMode ? 'bg-green-600 text-white' : (darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200')}`} title="Focus Mode">
-                    {focusMode ? '👁️ Exit Focus' : '🎯 Focus'}
-                  </button>
-
-                  {/* Word Goal */}
-                  <div className="flex items-center gap-2 ml-auto">
-                    <input
-                      type="number"
+                      {/* Insert Link */}
+                      <button onClick={insertLink} className={`px-3 py-1 text-xs rounded ${darkMode ? 'hover:bg-gray-600 bg-blue-900' : 'hover:bg-blue-100 bg-blue-50'} text-blue-600 dark:text-blue-300`} title="Insert Link">🔗 Link</button>
                       placeholder="Word goal"
                       value={wordGoal || ''}
                       onChange={(e) => setWordGoal(Number(e.target.value))}
                       className={`w-24 px-2 py-1 text-xs rounded border ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'border-gray-300'}`}
-                    />
-                    {wordGoal > 0 && (
-                      <div className="flex items-center gap-1">
-                        <div className="w-20 h-2 bg-gray-300 dark:bg-gray-600 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full ${stats.words >= wordGoal ? 'bg-green-500' : 'bg-blue-500'}`}
-                            style={{ width: `${Math.min((stats.words / wordGoal) * 100, 100)}%` }}
-                          ></div>
+                        />
+                      {wordGoal > 0 && (
+                        <div className="flex items-center gap-1">
+                          <div className="w-20 h-2 bg-gray-300 dark:bg-gray-600 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full ${stats.words >= wordGoal ? 'bg-green-500' : 'bg-blue-500'}`}
+                              style={{ width: `${Math.min((stats.words / wordGoal) * 100, 100)}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-xs">{Math.round((stats.words / wordGoal) * 100)}%</span>
                         </div>
-                        <span className="text-xs">{Math.round((stats.words / wordGoal) * 100)}%</span>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Formatting Toolbar */}
-              <div className={`flex gap-1 mb-2 p-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'}`}>
-                <button
-                  onClick={() => applyFormatting('bold')}
-                  className={`p-2 rounded hover:bg-opacity-80 transition-all ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`}
-                  title="Bold (select text first)"
-                >
-                  <Bold className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => applyFormatting('italic')}
-                  className={`p-2 rounded hover:bg-opacity-80 transition-all ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`}
-                  title="Italic (select text first)"
-                >
-                  <Italic className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => applyFormatting('underline')}
-                  className={`p-2 rounded hover:bg-opacity-80 transition-all ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`}
-                  title="Underline (select text first)"
-                >
-                  <Underline className="w-4 h-4" />
-                </button>
-                <div className={`ml-2 px-3 py-1 text-xs flex items-center ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  Select text and click a button to format
+                {/* Formatting Toolbar */}
+                <div className={`flex flex-wrap items-center gap-2 mb-2 p-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'}`}>
+                  <select
+                    value={fontFamily}
+                    onChange={(e) => setFontFamily(e.target.value)}
+                    className={`h-9 text-sm rounded-md border-none focus:ring-2 focus:ring-indigo-500 ${darkMode ? 'bg-gray-600 text-white' : 'bg-white text-gray-900'}`}
+                    title="Font Family"
+                  >
+                    <option value="Arial">Arial</option>
+                    <option value="Times New Roman">Times New Roman</option>
+                    <option value="Courier New">Courier New</option>
+                    <option value="Georgia">Georgia</option>
+                  </select>
+
+                  <select
+                    value={fontSize}
+                    onChange={(e) => setFontSize(Number(e.target.value))}
+                    className={`h-9 text-sm rounded-md border-none focus:ring-2 focus:ring-indigo-500 ${darkMode ? 'bg-gray-600 text-white' : 'bg-white text-gray-900'}`}
+                    title="Font Size"
+                  >
+                    <option value={10}>10</option>
+                    <option value={11}>11</option>
+                    <option value={12}>12</option>
+                    <option value={14}>14</option>
+                    <option value={16}>16</option>
+                    <option value={18}>18</option>
+                    <option value={20}>20</option>
+                    <option value={24}>24</option>
+                  </select>
+
+                  <select
+                    value={lineSpacing}
+                    onChange={(e) => setLineSpacing(Number(e.target.value))}
+                    className={`h-9 text-sm rounded-md border-none focus:ring-2 focus:ring-indigo-500 ${darkMode ? 'bg-gray-600 text-white' : 'bg-white text-gray-900'}`}
+                    title="Line Spacing"
+                  >
+                    <option value={1}>Single</option>
+                    <option value={1.5}>1.5</option>
+                    <option value={2}>Double</option>
+                  </select>
+                  <div className={`w-px h-6 mx-1 ${darkMode ? 'bg-gray-600' : 'bg-gray-300'}`}></div>
+                  <button
+                    onClick={() => applyFormatting('bold')}
+                    className={`p-2 rounded hover:bg-opacity-80 transition-all ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`}
+                    title="Bold (select text first)"
+                  >
+                    <Bold className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => applyFormatting('italic')}
+                    className={`p-2 rounded hover:bg-opacity-80 transition-all ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`}
+                    title="Italic (select text first)"
+                  >
+                    <Italic className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => applyFormatting('underline')}
+                    className={`p-2 rounded hover:bg-opacity-80 transition-all ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`}
+                    title="Underline (select text first)"
+                  >
+                    <Underline className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setAddPageNumbers(!addPageNumbers)}
+                    className={`p-2 rounded hover:bg-opacity-80 transition-all ${addPageNumbers ? (darkMode ? 'bg-gray-600' : 'bg-gray-200') : ''} ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`}
+                    title="Toggle Page Numbers"
+                  >
+                    <Hash className="w-4 h-4" />
+                  </button>
+                  <div className={`ml-2 px-3 py-1 text-xs flex items-center ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    Select text and click a button to format
+                  </div>
                 </div>
-              </div>
 
-              <textarea
-                ref={textareaRef}
-                id="content"
-                rows={20}
-                className={`block w-full rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 sm:text-sm p-4 border resize-y font-mono ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-indigo-400' : 'border-gray-300 text-gray-800 focus:border-indigo-500'}`}
-                placeholder="Paste your notes here... (e.g., project report, study notes, assignment)
+                <textarea
+                  ref={textareaRef}
+                  id="content"
+                  rows={20}
+                  className={`block w-full rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 sm:text-sm p-4 border resize-y font-mono ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-indigo-400' : 'border-gray-300 text-gray-800 focus:border-indigo-500'}`}
+                  placeholder="Paste your notes here... (e.g., project report, study notes, assignment)
 
 Try keyboard shortcuts:
 • Ctrl+B for **bold**
@@ -983,165 +978,167 @@ Try keyboard shortcuts:
 • Ctrl+U for __underline__
 • Ctrl+S to save as PDF
 • Press ? for more shortcuts"
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                style={{ textAlign: alignment as any, fontSize: `${fontSize}px`, lineHeight: lineSpacing }}
-              />
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  style={{ textAlign: alignment as any, fontSize: `${fontSize}px`, lineHeight: lineSpacing }}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-8">
+                <button
+                  onClick={handleGeneratePDF}
+                  disabled={!text || isGenerating}
+                  className={`flex items-center justify-center px-4 py-3 border border-transparent text-sm font-medium rounded-xl text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 ${(!text || isGenerating) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  <FileText className="w-5 h-5 mr-2" />
+                  PDF
+                </button>
+
+                <button
+                  onClick={handleGenerateDOCX}
+                  disabled={!text || isGenerating}
+                  className={`flex items-center justify-center px-4 py-3 border border-transparent text-sm font-medium rounded-xl text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 ${(!text || isGenerating) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  <FileType className="w-5 h-5 mr-2" />
+                  DOCX
+                </button>
+
+                <button
+                  onClick={handleDownloadTXT}
+                  disabled={!text}
+                  className={`flex items-center justify-center px-4 py-3 border border-transparent text-sm font-medium rounded-xl text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 ${!text ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  <Download className="w-5 h-5 mr-2" />
+                  TXT
+                </button>
+
+                <button
+                  onClick={copyToClipboard}
+                  disabled={!text}
+                  className={`flex items-center justify-center px-4 py-3 border border-transparent text-sm font-medium rounded-xl text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 ${!text ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  <Copy className="w-5 h-5 mr-2" />
+                  Copy
+                </button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-8">
-              <button
-                onClick={handleGeneratePDF}
-                disabled={!text || isGenerating}
-                className={`flex items-center justify-center px-4 py-3 border border-transparent text-sm font-medium rounded-xl text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 ${(!text || isGenerating) ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                <FileText className="w-5 h-5 mr-2" />
-                PDF
-              </button>
-
-              <button
-                onClick={handleGenerateDOCX}
-                disabled={!text || isGenerating}
-                className={`flex items-center justify-center px-4 py-3 border border-transparent text-sm font-medium rounded-xl text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 ${(!text || isGenerating) ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                <FileType className="w-5 h-5 mr-2" />
-                DOCX
-              </button>
-
-              <button
-                onClick={handleDownloadTXT}
-                disabled={!text}
-                className={`flex items-center justify-center px-4 py-3 border border-transparent text-sm font-medium rounded-xl text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 ${!text ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                <Download className="w-5 h-5 mr-2" />
-                TXT
-              </button>
-
-              <button
-                onClick={copyToClipboard}
-                disabled={!text}
-                className={`flex items-center justify-center px-4 py-3 border border-transparent text-sm font-medium rounded-xl text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 ${!text ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                <Copy className="w-5 h-5 mr-2" />
-                Copy
-              </button>
-            </div>
-          </div>
-
-          <div className={`px-8 py-4 border-t flex justify-between items-center text-sm ${darkMode ? 'bg-gray-900 border-gray-700 text-gray-400' : 'bg-gray-50 border-gray-100 text-gray-500'}`}>
-            <span>100% Client-side processing</span>
-            <div className="flex gap-4">
-              <span className="flex items-center"><FileCode className="w-4 h-4 mr-1" /> No Backend</span>
-              <span className="flex items-center"><Download className="w-4 h-4 mr-1" /> Instant Download</span>
+            <div className={`px-8 py-4 border-t flex justify-between items-center text-sm ${darkMode ? 'bg-gray-900 border-gray-700 text-gray-400' : 'bg-gray-50 border-gray-100 text-gray-500'}`}>
+              <span>100% Client-side processing</span>
+              <div className="flex gap-4">
+                <span className="flex items-center"><FileCode className="w-4 h-4 mr-1" /> No Backend</span>
+                <span className="flex items-center"><Download className="w-4 h-4 mr-1" /> Instant Download</span>
+              </div>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Keyboard Shortcuts Modal */}
-        {showShortcuts && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowShortcuts(false)}>
-            <div className={`max-w-2xl w-full rounded-xl p-6 ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`} onClick={(e) => e.stopPropagation()}>
-              <h2 className="text-2xl font-bold mb-4">⌨️ Keyboard Shortcuts</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <h3 className="font-semibold mb-2 text-indigo-500">Formatting</h3>
-                  <div className="space-y-1 text-sm">
-                    <div className="flex justify-between"><span>Bold</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+B</kbd></div>
-                    <div className="flex justify-between"><span>Italic</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+I</kbd></div>
-                    <div className="flex justify-between"><span>Underline</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+U</kbd></div>
-                  </div>
-                </div>
-                <div>
-                  <h3 className="font-semibold mb-2 text-green-500">File Operations</h3>
-                  <div className="space-y-1 text-sm">
-                    <div className="flex justify-between"><span>Save as PDF</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+S</kbd></div>
-                    <div className="flex justify-between"><span>Save as DOCX</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+Shift+S</kbd></div>
-                  </div>
-                </div>
-                <div>
-                  <h3 className="font-semibold mb-2 text-purple-500">Editing</h3>
-                  <div className="space-y-1 text-sm">
-                    <div className="flex justify-between"><span>Undo</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+Z</kbd></div>
-                    <div className="flex justify-between"><span>Redo</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+Y</kbd></div>
-                  </div>
-                </div>
-                <div>
-                  <h3 className="font-semibold mb-2 text-blue-500">Help</h3>
-                  <div className="space-y-1 text-sm">
-                    <div className="flex justify-between"><span>Show shortcuts</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">?</kbd></div>
-                  </div>
+      {/* Keyboard Shortcuts Modal */}
+      {showShortcuts && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowShortcuts(false)}>
+          <div className={`max-w-2xl w-full rounded-xl p-6 ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`} onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-2xl font-bold mb-4">⌨️ Keyboard Shortcuts</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <h3 className="font-semibold mb-2 text-indigo-500">Formatting</h3>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between"><span>Bold</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+B</kbd></div>
+                  <div className="flex justify-between"><span>Italic</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+I</kbd></div>
+                  <div className="flex justify-between"><span>Underline</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+U</kbd></div>
                 </div>
               </div>
-              <button onClick={() => setShowShortcuts(false)} className="mt-6 w-full py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+              <div>
+                <h3 className="font-semibold mb-2 text-green-500">File Operations</h3>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between"><span>Save as PDF</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+S</kbd></div>
+                  <div className="flex justify-between"><span>Save as DOCX</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+Shift+S</kbd></div>
+                </div>
+              </div>
+              <div>
+                <h3 className="font-semibold mb-2 text-purple-500">Editing</h3>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between"><span>Undo</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+Z</kbd></div>
+                  <div className="flex justify-between"><span>Redo</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+Y</kbd></div>
+                </div>
+              </div>
+              <div>
+                <h3 className="font-semibold mb-2 text-blue-500">Help</h3>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between"><span>Show shortcuts</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">?</kbd></div>
+                </div>
+              </div>
+            </div>
+            <button onClick={() => setShowShortcuts(false)} className="mt-6 w-full py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Find & Replace Modal */}
+      {showFindReplace && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowFindReplace(false)}>
+          <div className={`max-w-md w-full rounded-xl p-6 ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`} onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-2xl font-bold mb-4">🔍 Find & Replace</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Find</label>
+                <input
+                  type="text"
+                  value={findText}
+                  onChange={(e) => setFindText(e.target.value)}
+                  className={`w-full px-3 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'}`}
+                  placeholder="Enter text to find..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Replace with</label>
+                <input
+                  type="text"
+                  value={replaceText}
+                  onChange={(e) => setReplaceText(e.target.value)}
+                  className={`w-full px-3 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'}`}
+                  placeholder="Enter replacement text..."
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleFindReplace(false)}
+                  className="flex-1 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Replace Next
+                </button>
+                <button
+                  onClick={() => handleFindReplace(true)}
+                  className="flex-1 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                >
+                  Replace All
+                </button>
+              </div>
+              <button
+                onClick={() => setShowFindReplace(false)}
+                className="w-full py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
                 Close
               </button>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Find & Replace Modal */}
-        {showFindReplace && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowFindReplace(false)}>
-            <div className={`max-w-md w-full rounded-xl p-6 ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`} onClick={(e) => e.stopPropagation()}>
-              <h2 className="text-2xl font-bold mb-4">🔍 Find & Replace</h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Find</label>
-                  <input
-                    type="text"
-                    value={findText}
-                    onChange={(e) => setFindText(e.target.value)}
-                    className={`w-full px-3 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'}`}
-                    placeholder="Enter text to find..."
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Replace with</label>
-                  <input
-                    type="text"
-                    value={replaceText}
-                    onChange={(e) => setReplaceText(e.target.value)}
-                    className={`w-full px-3 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'}`}
-                    placeholder="Enter replacement text..."
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleFindReplace(false)}
-                    className="flex-1 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    Replace Next
-                  </button>
-                  <button
-                    onClick={() => handleFindReplace(true)}
-                    className="flex-1 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-                  >
-                    Replace All
-                  </button>
-                </div>
-                <button
-                  onClick={() => setShowFindReplace(false)}
-                  className="w-full py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
+      {/* Loading Spinner */}
+      {isGenerating && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className={`rounded-xl p-8 flex flex-col items-center ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
+            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-indigo-600 mb-4"></div>
+            <p className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Generating your document...</p>
+            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Please wait</p>
           </div>
-        )}
-
-        {/* Loading Spinner */}
-        {isGenerating && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className={`rounded-xl p-8 flex flex-col items-center ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
-              <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-indigo-600 mb-4"></div>
-              <p className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Generating your document...</p>
-              <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Please wait</p>
-            </div>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
+    </div >
   );
 };
 
