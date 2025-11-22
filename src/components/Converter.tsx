@@ -716,9 +716,17 @@ const Converter = () => {
 
   // Generate QR code for document
   const generateQRCode = async () => {
+    console.log("Share button clicked!");
+    if (!text) {
+      console.log("Text is empty, but proceeding for debug...");
+      // showToast('Cannot generate QR code for empty content', 'warning');
+      // return;
+    }
+    console.log("Attempting to generate QR code...");
     try {
       // Create a data URL containing the document text
       const dataUrl = await QRCode.toDataURL(text.substring(0, 2000)); // Limit to 2000 chars for QR
+      console.log("QR code generated successfully");
       setQrCodeDataUrl(dataUrl);
       setShowShareModal(true);
       showToast('QR Code generated successfully!', 'success');
@@ -728,7 +736,6 @@ const Converter = () => {
     }
   };
 
-  // AI-powered text summarization (client-side)
   const summarizeText = () => {
     if (!text) {
       showToast('No text to summarize', 'warning');
@@ -1184,7 +1191,7 @@ const Converter = () => {
 
                       {/* Sharing & Presets */}
                       <div className="flex gap-1 border-r pr-2 border-gray-400">
-                        <button onClick={generateQRCode} disabled={!text} className={`px-3 py-1 text-xs rounded flex items-center gap-1 ${darkMode ? 'hover:bg-gray-600 bg-green-900' : 'hover:bg-green-100 bg-green-50'} text-green-600 dark:text-green-300 ${!text ? 'opacity-50 cursor-not-allowed' : ''}`} title="Generate QR Code">
+                        <button onClick={generateQRCode} className={`px-3 py-1 text-xs rounded flex items-center gap-1 ${darkMode ? 'hover:bg-gray-600 bg-green-900' : 'hover:bg-green-100 bg-green-50'} text-green-600 dark:text-green-300`} title="Generate QR Code">
                           <Share2 className="w-3 h-3" /> Share
                         </button>
                         <button onClick={() => setShowPresetManager(true)} className={`px-3 py-1 text-xs rounded flex items-center gap-1 ${darkMode ? 'hover:bg-gray-600 bg-orange-900' : 'hover:bg-orange-100 bg-orange-50'} text-orange-600 dark:text-orange-300`} title="Manage Presets">

@@ -33,7 +33,7 @@ const Footer: React.FC<FooterProps> = ({ darkMode = false }) => {
     return (
         <footer className={`mt-8 py-6 border-t ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
             <div className="max-w-7xl mx-auto px-4">
-                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-6">
                     {/* Creator Info */}
                     <div className={`text-center md:text-left ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                         <p className="text-sm">
@@ -44,6 +44,21 @@ const Footer: React.FC<FooterProps> = ({ darkMode = false }) => {
                         </p>
                     </div>
 
+                    {/* Legal Links */}
+                    <div className={`flex flex-wrap items-center justify-center gap-4 text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        <a href="/privacy" className="hover:underline transition-colors">
+                            Privacy Policy
+                        </a>
+                        <span>•</span>
+                        <a href="/terms" className="hover:underline transition-colors">
+                            Terms of Service
+                        </a>
+                        <span>•</span>
+                        <a href="/contact" className="hover:underline transition-colors">
+                            Contact
+                        </a>
+                    </div>
+
                     {/* Social Links */}
                     <div className="flex items-center gap-4">
                         <a
@@ -51,8 +66,8 @@ const Footer: React.FC<FooterProps> = ({ darkMode = false }) => {
                             target="_blank"
                             rel="noopener noreferrer"
                             className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${darkMode
-                                    ? 'hover:bg-gray-700 text-gray-300 hover:text-white'
-                                    : 'hover:bg-gray-100 text-gray-700 hover:text-gray-900'
+                                ? 'hover:bg-gray-700 text-gray-300 hover:text-white'
+                                : 'hover:bg-gray-100 text-gray-700 hover:text-gray-900'
                                 }`}
                             title="GitHub"
                         >
@@ -65,8 +80,8 @@ const Footer: React.FC<FooterProps> = ({ darkMode = false }) => {
                             target="_blank"
                             rel="noopener noreferrer"
                             className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${darkMode
-                                    ? 'hover:bg-gray-700 text-gray-300 hover:text-white'
-                                    : 'hover:bg-gray-100 text-gray-700 hover:text-gray-900'
+                                ? 'hover:bg-gray-700 text-gray-300 hover:text-white'
+                                : 'hover:bg-gray-100 text-gray-700 hover:text-gray-900'
                                 }`}
                             title="LinkedIn"
                         >
@@ -79,8 +94,8 @@ const Footer: React.FC<FooterProps> = ({ darkMode = false }) => {
                             target="_blank"
                             rel="noopener noreferrer"
                             className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${darkMode
-                                    ? 'hover:bg-gray-700 text-gray-300 hover:text-white'
-                                    : 'hover:bg-gray-100 text-gray-700 hover:text-gray-900'
+                                ? 'hover:bg-gray-700 text-gray-300 hover:text-white'
+                                : 'hover:bg-gray-100 text-gray-700 hover:text-gray-900'
                                 }`}
                             title="Portfolio"
                         >
