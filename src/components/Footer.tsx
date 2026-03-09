@@ -1,11 +1,14 @@
-import React, { useEffect } from 'react';
-import { Github, Linkedin, Globe, Coffee } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Github, Linkedin, Globe, Coffee, BellRing } from 'lucide-react';
+import UpdatesModal from './UpdatesModal';
 
 interface FooterProps {
     darkMode?: boolean;
 }
 
 const Footer: React.FC<FooterProps> = ({ darkMode = false }) => {
+    const [showUpdatesModal, setShowUpdatesModal] = useState(false);
+
     useEffect(() => {
         // Load Buy Me a Coffee widget script
         const script = document.createElement('script');
@@ -57,6 +60,14 @@ const Footer: React.FC<FooterProps> = ({ darkMode = false }) => {
                         <a href="/contact" className="hover:underline transition-colors">
                             Contact
                         </a>
+                        <span>•</span>
+                        <button
+                            onClick={() => setShowUpdatesModal(true)}
+                            className="hover:underline transition-colors flex items-center gap-1 font-medium text-indigo-500 dark:text-indigo-400"
+                        >
+                            <BellRing className="w-3.5 h-3.5" />
+                            Updates
+                        </button>
                     </div>
 
                     {/* Social Links */}
@@ -116,6 +127,12 @@ const Footer: React.FC<FooterProps> = ({ darkMode = false }) => {
                     </div>
                 </div>
             </div>
+
+            <UpdatesModal
+                isOpen={showUpdatesModal}
+                onClose={() => setShowUpdatesModal(false)}
+                darkMode={darkMode}
+            />
         </footer>
     );
 };

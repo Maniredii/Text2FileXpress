@@ -1,324 +1,126 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { FileText, FileType, Download, FileCode, Moon, Sun, AlignLeft, AlignCenter, AlignRight, Copy, BookOpen, Settings, Bold, Italic, Underline, Maximize, Minimize, Hash, Share2, Save, Table, Image, Code, Lock, Sparkles, RotateCcw, RotateCw, Trash2 } from 'lucide-react';
-import { jsPDF } from 'jspdf';
-import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel, UnderlineType } from 'docx';
+import React, { useState, useEffect, useRef, useCallback, DragEvent } from 'react';
+import { FileCode, Download, Moon, Sun, AlignLeft, AlignCenter, AlignRight, Upload, Eye, EyeOff } from 'lucide-react';
 import { saveAs } from 'file-saver';
 import QRCode from 'qrcode';
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+
+// Hooks
+import { useEditorHistory } from '../hooks/useEditorHistory';
+import { useAutoSave, loadSavedDraft } from '../hooks/useAutoSave';
+import { useDrafts } from '../hooks/useDrafts';
+import { useToast } from '../hooks/useToast';
+import { usePDFGenerator } from '../hooks/usePDFGenerator';
+import { useDocxGenerator } from '../hooks/useDocxGenerator';
+
+// Components
+import SidebarTemplates from './SidebarTemplates';
+import EditorToolbar from './EditorToolbar';
+import EditorStats from './EditorStats';
+import ActionButtons from './ActionButtons';
 import ShareModal from './ShareModal';
 import PresetManager from './PresetManager';
+import DraftManager from './DraftManager';
 import TableEditor from './TableEditor';
 import Toast from './Toast';
-import type { ToastType } from './Toast';
 import Footer from './Footer';
 
-
-const TEMPLATES = {
-  blank: '',
-  essay: `[Your Name]
-[Professor's Name]
-[Course Name]
-[Date]
-
-Essay Title
-
-Introduction paragraph goes here...
-
-Body paragraph 1...
-
-Body paragraph 2...
-
-Conclusion...`,
-  report: `Title: [Report Title]
-Author: [Your Name]
-Date: [Date]
-Course: [Course Name]
-
-Executive Summary
-[Brief overview of the report]
-
-Introduction
-[Background and purpose]
-
-Methodology
-[How the research was conducted]
-
-Findings
-[Key results and data]
-
-Conclusion
-[Summary and recommendations]
-
-References
-[List of sources]`,
-  assignment: `Student Name: [Your Name]
-Student ID: [ID Number]
-Course: [Course Name]
-Assignment: [Assignment Title]
-Due Date: [Date]
-
-Answer to Question 1:
-[Your answer here]
-
-Answer to Question 2:
-[Your answer here]`,
-  formalLetter: `[Your Name]
-[Your Address]
-[City, State ZIP Code]
-[Email Address]
-[Phone Number]
-
-[Date]
-
-[Recipient's Name]
-[Recipient's Title]
-[Company/Organization Name]
-[Address]
-[City, State ZIP Code]
-
-Dear [Mr./Ms./Dr.] [Last Name],
-
-[Opening paragraph: State the purpose of your letter]
-
-[Body paragraph: Provide details and supporting information]
-
-[Closing paragraph: Summarize and state desired action]
-
-Sincerely,
-
-[Your Signature]
-[Your Typed Name]`,
-  coverLetter: `[Your Name]
-[Your Address]
-[City, State ZIP Code]
-[Email] | [Phone]
-
-[Date]
-
-[Hiring Manager's Name]
-[Company Name]
-[Company Address]
-[City, State ZIP Code]
-
-Dear [Hiring Manager's Name],
-
-I am writing to express my strong interest in the [Position Title] position at [Company Name], as advertised on [where you found the job posting]. As a [your current status, e.g., recent graduate, current student] with [relevant experience/skills], I am excited about the opportunity to contribute to your team.
-
-[Body paragraph 1: Highlight your relevant qualifications and experiences]
-
-[Body paragraph 2: Explain why you're interested in this company and position]
-
-[Body paragraph 3: Mention specific skills or achievements that make you a strong candidate]
-
-I would welcome the opportunity to discuss how my background and skills would benefit [Company Name]. Thank you for considering my application. I look forward to hearing from you.
-
-Sincerely,
-
-[Your Name]`,
-  requestLetter: `[Your Name]
-[Your Address]
-[Email] | [Phone]
-
-[Date]
-
-[Recipient's Name]
-[Recipient's Title]
-[Department/Organization]
-
-Subject: Request for [Specify: Leave/Permission/Information/etc.]
-
-Dear [Mr./Ms./Dr.] [Last Name],
-
-I am writing to formally request [state what you are requesting] for the period of [dates/duration] due to [brief reason].
-
-[Provide detailed explanation and justification for your request]
-
-[Mention any arrangements you have made to minimize impact]
-
-I would be grateful if you could approve this request. Please let me know if you need any additional information or documentation.
-
-Thank you for your consideration.
-
-Respectfully,
-
-[Your Name]
-[Student ID/Employee ID if applicable]`,
-  recommendationRequest: `[Your Name]
-[Your Email]
-[Your Phone]
-
-[Date]
-
-[Professor's Name]
-[Department]
-[University Name]
-
-Dear Professor [Last Name],
-
-I hope this email finds you well. I am writing to ask if you would be willing to write a letter of recommendation for me as I apply for [graduate school/internship/job position] at [institution/company name].
-
-I thoroughly enjoyed your [course name] class during [semester/year], where I [mention specific achievement or project]. I believe your perspective on my [academic abilities/work ethic/specific skills] would greatly strengthen my application.
-
-The application deadline is [date], and the letter should be submitted via [method]. I have attached my resume, personal statement, and [any other relevant documents] for your reference.
-
-I understand this is a significant time commitment, and I would be happy to provide any additional information you might need. Please let me know if you are able to write this recommendation.
-
-Thank you very much for considering my request.
-
-Best regards,
-
-[Your Name]`,
-  complaintLetter: `[Your Name]
-[Your Address]
-[Email] | [Phone]
-
-[Date]
-
-[Recipient's Name]
-[Recipient's Title]
-[Company/Department Name]
-[Address]
-
-Subject: Formal Complaint Regarding [Issue]
-
-Dear [Mr./Ms./Dr.] [Last Name],
-
-I am writing to formally lodge a complaint regarding [briefly state the issue] that occurred on [date].
-
-[Paragraph 1: Describe the situation in detail, including dates, times, and people involved]
-
-[Paragraph 2: Explain how this issue has affected you and why it is unacceptable]
-
-[Paragraph 3: State what resolution or action you expect]
-
-I trust that this matter will be addressed promptly and appropriately. I would appreciate a response within [timeframe] regarding the steps being taken to resolve this issue.
-
-Thank you for your attention to this matter.
-
-Sincerely,
-
-[Your Name]
-[Reference Number/Account Number if applicable]`
-};
+// Utils & Constants
+import { TEMPLATES } from '../utils/templates';
+import { calculateStats, sanitizeFilename, summarizeText as summarizeTextUtil, autoDetectHeadings as autoDetectHeadingsUtil } from '../utils/markdown';
+import type { Alignment } from '../types';
 
 const Converter = () => {
+  // ── Core State ──────────────────────────────────────────────
   const [text, setText] = useState('');
   const [filename, setFilename] = useState('output');
   const [isGenerating, setIsGenerating] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
-  const [stats, setStats] = useState({ words: 0, chars: 0, paragraphs: 0, sentences: 0, readingTime: 0 });
-  const [alignment, setAlignment] = useState<'left' | 'center' | 'right'>('left');
+
+  // ── Editor Settings ─────────────────────────────────────────
+  const [alignment, setAlignment] = useState<Alignment>('left');
   const [fontSize, setFontSize] = useState(12);
   const [lineSpacing, setLineSpacing] = useState(1.5);
   const [addPageNumbers, setAddPageNumbers] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const [fontFamily, setFontFamily] = useState('Arial');
-  const [history, setHistory] = useState<string[]>(['']);
-  const [historyIndex, setHistoryIndex] = useState(0);
-  const [showShortcuts, setShowShortcuts] = useState(false);
   const [wordGoal, setWordGoal] = useState(0);
   const [focusMode, setFocusMode] = useState(false);
+  const [watermarkText, setWatermarkText] = useState('');
+  const [pdfPassword, setPdfPassword] = useState('');
+
+  // ── UI Modals & Panels ──────────────────────────────────────
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const [showFindReplace, setShowFindReplace] = useState(false);
   const [findText, setFindText] = useState('');
   const [replaceText, setReplaceText] = useState('');
-  const textareaRef = useRef(null);
-
-  // New state for modern features
   const [showShareModal, setShowShareModal] = useState(false);
   const [showPresetManager, setShowPresetManager] = useState(false);
+  const [showDraftManager, setShowDraftManager] = useState(false);
   const [showTableEditor, setShowTableEditor] = useState(false);
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
-  const [toast, setToast] = useState<{ message: string; type: ToastType; visible: boolean }>({ message: '', type: 'info', visible: false });
-  const [pdfPassword, setPdfPassword] = useState('');
-  const [watermarkText, setWatermarkText] = useState('');
-  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
 
-  // Auto-save to localStorage
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // ── Custom Hooks ────────────────────────────────────────────
+  const { undo, redo, pushHistory, reset: resetHistory, canUndo, canRedo } = useEditorHistory();
+  const { drafts, saveDraft, loadDraft, deleteDraft, renameDraft } = useDrafts();
+  const { toast, showToast, hideToast } = useToast();
+  const { generatePDF } = usePDFGenerator();
+  const { generateDOCX } = useDocxGenerator();
+
+  useAutoSave({ text, filename, fontSize, darkMode });
+
+  // ── Computed Values ─────────────────────────────────────────
+  const stats = calculateStats(text);
+
+  // ── Load Saved Draft on Mount ───────────────────────────────
   useEffect(() => {
-    const savedText = localStorage.getItem('text2filexpress_draft');
-    const savedFilename = localStorage.getItem('text2filexpress_filename');
-    const savedFontSize = localStorage.getItem('text2filexpress_fontsize');
-    const savedDarkMode = localStorage.getItem('text2filexpress_darkmode');
-
-    if (savedText) setText(savedText);
-    if (savedFilename) setFilename(savedFilename);
-    if (savedFontSize) setFontSize(parseInt(savedFontSize));
-    if (savedDarkMode) setDarkMode(savedDarkMode === 'true');
+    const saved = loadSavedDraft();
+    if (saved.text) setText(saved.text);
+    if (saved.filename) setFilename(saved.filename);
+    if (saved.fontSize) setFontSize(saved.fontSize);
+    if (saved.darkMode !== undefined) setDarkMode(saved.darkMode);
   }, []);
 
+  // ── History Tracking ────────────────────────────────────────
   useEffect(() => {
     const timer = setTimeout(() => {
-      localStorage.setItem('text2filexpress_draft', text);
-      localStorage.setItem('text2filexpress_filename', filename);
-      localStorage.setItem('text2filexpress_fontsize', fontSize.toString());
-      localStorage.setItem('text2filexpress_darkmode', darkMode.toString());
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [text, filename, fontSize, darkMode]);
-
-  // Enhanced statistics calculation
-  useEffect(() => {
-    const words = text.trim() ? text.trim().split(/\s+/).length : 0;
-    const chars = text.length;
-    const paragraphs = text.trim() ? text.split(/\n\n+/).filter(p => p.trim()).length : 0;
-    const sentences = text.trim() ? text.split(/[.!?]+/).filter(s => s.trim()).length : 0;
-    const readingTime = Math.ceil(words / 200); // 200 words per minute average
-    setStats({ words, chars, paragraphs, sentences, readingTime });
-  }, [text]);
-
-  // History tracking for undo/redo
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (text !== history[historyIndex]) {
-        const newHistory = history.slice(0, historyIndex + 1);
-        newHistory.push(text);
-        if (newHistory.length > 50) newHistory.shift(); // Keep last 50 states
-        setHistory(newHistory);
-        setHistoryIndex(newHistory.length - 1);
-      }
+      pushHistory(text);
     }, 500);
     return () => clearTimeout(timer);
   }, [text]);
 
-  // Keyboard shortcuts
+  // ── Keyboard Shortcuts ──────────────────────────────────────
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl/Cmd + B for Bold
       if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
         e.preventDefault();
         applyFormatting('bold');
       }
-      // Ctrl/Cmd + I for Italic
       if ((e.ctrlKey || e.metaKey) && e.key === 'i') {
         e.preventDefault();
         applyFormatting('italic');
       }
-      // Ctrl/Cmd + U for Underline
       if ((e.ctrlKey || e.metaKey) && e.key === 'u') {
         e.preventDefault();
         applyFormatting('underline');
       }
-      // Ctrl/Cmd + S for Save PDF
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
         if (text) handleGeneratePDF();
       }
-      // Ctrl/Cmd + Shift + S for Save DOCX
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'S') {
         e.preventDefault();
         if (text) handleGenerateDOCX();
       }
-      // Ctrl/Cmd + Z for Undo
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
         e.preventDefault();
-        undo();
+        handleUndo();
       }
-      // Ctrl/Cmd + Y or Ctrl/Cmd + Shift + Z for Redo
       if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) {
         e.preventDefault();
-        redo();
+        handleRedo();
       }
-      // ? for shortcuts help
       if (e.key === '?' && !e.ctrlKey && !e.metaKey) {
         setShowShortcuts(true);
       }
@@ -326,86 +128,103 @@ const Converter = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [text, history, historyIndex]);
+  }, [text]);
 
-  const undo = () => {
-    if (historyIndex > 0) {
-      setHistoryIndex(historyIndex - 1);
-      setText(history[historyIndex - 1]);
-    }
-  };
+  // ── Editor Actions ──────────────────────────────────────────
 
-  const redo = () => {
-    if (historyIndex < history.length - 1) {
-      setHistoryIndex(historyIndex + 1);
-      setText(history[historyIndex + 1]);
-    }
-  };
+  const handleUndo = useCallback(() => {
+    const result = undo();
+    if (result !== null) setText(result);
+  }, [undo]);
 
-  const clearDraft = () => {
+  const handleRedo = useCallback(() => {
+    const result = redo();
+    if (result !== null) setText(result);
+  }, [redo]);
+
+  const clearDraft = useCallback(() => {
     if (confirm('Clear saved draft and all text?')) {
       localStorage.removeItem('text2filexpress_draft');
       setText('');
-      setHistory(['']);
-      setHistoryIndex(0);
+      resetHistory();
     }
-  };
+  }, [resetHistory]);
 
-  const sanitizeFilename = (name: string) => {
-    return name.replace(/[^a-z0-9_\-]/gi, '_').replace(/_{2,}/g, '_');
-  };
+  const copyToClipboard = useCallback(() => {
+    navigator.clipboard.writeText(text);
+    showToast('Text copied to clipboard!', 'success');
+  }, [text, showToast]);
 
-  // Parse markdown for formatting
-  const parseMarkdown = (text: string) => {
-    const segments: Array<{ text: string, bold?: boolean, italic?: boolean, underline?: boolean }> = [];
-    let currentPos = 0;
+  const loadTemplate = useCallback((templateKey: string) => {
+    setText(TEMPLATES[templateKey] || '');
+  }, []);
 
-    // Regex to match **bold**, *italic*, __underline__
-    const regex = /(\*\*([^*]+)\*\*)|(\*([^*]+)\*)|(__([^_]+)__)/g;
-    let match;
+  // ── Text Manipulation ──────────────────────────────────────
 
-    while ((match = regex.exec(text)) !== null) {
-      // Add text before match
-      if (match.index > currentPos) {
-        segments.push({ text: text.substring(currentPos, match.index) });
-      }
+  const applyFormatting = useCallback((formatType: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
 
-      // Add formatted text
-      if (match[1]) { // **bold**
-        segments.push({ text: match[2], bold: true });
-      } else if (match[3]) { // *italic*
-        segments.push({ text: match[4], italic: true });
-      } else if (match[5]) { // __underline__
-        segments.push({ text: match[6], underline: true });
-      }
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = text.substring(start, end);
 
-      currentPos = match.index + match[0].length;
+    if (!selectedText) {
+      showToast('Please select some text first!', 'warning');
+      return;
     }
 
-    // Add remaining text
-    if (currentPos < text.length) {
-      segments.push({ text: text.substring(currentPos) });
+    let formattedText = '';
+    let prefix = '';
+    let suffix = '';
+
+    switch (formatType) {
+      case 'bold':
+        prefix = '**';
+        suffix = '**';
+        break;
+      case 'italic':
+        prefix = '*';
+        suffix = '*';
+        break;
+      case 'underline':
+        prefix = '__';
+        suffix = '__';
+        break;
+      default:
+        return;
     }
 
-    return segments.length > 0 ? segments : [{ text }];
-  };
+    if (selectedText.startsWith(prefix) && selectedText.endsWith(suffix) && selectedText.length >= prefix.length + suffix.length) {
+      // Remove formatting if it already exists
+      formattedText = selectedText.substring(prefix.length, selectedText.length - suffix.length);
+    } else {
+      // Add formatting
+      formattedText = `${prefix}${selectedText}${suffix}`;
+    }
 
-  // Insert heading (H1, H2, H3)
-  const insertHeading = (level: number) => {
+    const newText = text.substring(0, start) + formattedText + text.substring(end);
+    setText(newText);
+
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start, start + formattedText.length);
+    }, 0);
+  }, [text, showToast]);
+
+  const insertHeading = useCallback((level: number) => {
     const textarea = textareaRef.current;
     if (!textarea) return;
 
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const selectedText = text.substring(start, end) || 'Heading';
-
     const headingPrefix = '#'.repeat(level) + ' ';
     const newText = text.substring(0, start) + headingPrefix + selectedText + text.substring(end);
     setText(newText);
-  };
+  }, [text]);
 
-  // Insert bullet or numbered list
-  const insertList = (type: 'bullet' | 'numbered') => {
+  const insertList = useCallback((type: 'bullet' | 'numbered') => {
     const textarea = textareaRef.current;
     if (!textarea) return;
 
@@ -415,13 +234,9 @@ const Converter = () => {
 
     if (selectedText) {
       const lines = selectedText.split('\n');
-      const formattedLines = lines.map((line, index) => {
-        if (type === 'bullet') {
-          return `• ${line}`;
-        } else {
-          return `${index + 1}. ${line}`;
-        }
-      });
+      const formattedLines = lines.map((line, index) =>
+        type === 'bullet' ? `• ${line}` : `${index + 1}. ${line}`
+      );
       const newText = text.substring(0, start) + formattedLines.join('\n') + text.substring(end);
       setText(newText);
     } else {
@@ -429,48 +244,9 @@ const Converter = () => {
       const newText = text.substring(0, start) + prefix + text.substring(end);
       setText(newText);
     }
-  };
+  }, [text]);
 
-  // Find and replace
-  const handleFindReplace = (replaceAll: boolean) => {
-    if (!findText) return;
-
-    if (replaceAll) {
-      const newText = text.split(findText).join(replaceText);
-      setText(newText);
-      alert(`Replaced ${text.split(findText).length - 1} occurrence(s)`);
-    } else {
-      const index = text.indexOf(findText);
-      if (index !== -1) {
-        const newText = text.substring(0, index) + replaceText + text.substring(index + findText.length);
-        setText(newText);
-        alert('Replaced 1 occurrence');
-      } else {
-        alert('Text not found');
-      }
-    }
-    setShowFindReplace(false);
-  };
-
-  // Insert hyperlink
-  const insertLink = () => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = text.substring(start, end) || 'link text';
-    const url = prompt('Enter URL:', 'https://');
-
-    if (url) {
-      const linkText = `[${selectedText}](${url})`;
-      const newText = text.substring(0, start) + linkText + text.substring(end);
-      setText(newText);
-    }
-  };
-
-  // Change text case
-  const changeCase = (caseType: 'upper' | 'lower' | 'title') => {
+  const changeCase = useCallback((caseType: 'upper' | 'lower' | 'title') => {
     const textarea = textareaRef.current;
     if (!textarea) return;
 
@@ -479,7 +255,7 @@ const Converter = () => {
     const selectedText = text.substring(start, end);
 
     if (!selectedText) {
-      alert('Please select some text first!');
+      showToast('Please select some text first!', 'warning');
       return;
     }
 
@@ -500,330 +276,82 @@ const Converter = () => {
 
     const newText = text.substring(0, start) + transformedText + text.substring(end);
     setText(newText);
-  };
+  }, [text, showToast]);
 
-  const loadTemplate = (templateKey) => {
-    setText(TEMPLATES[templateKey]);
-  };
-
-  const applyFormatting = (formatType) => {
+  const insertLink = useCallback(() => {
     const textarea = textareaRef.current;
     if (!textarea) return;
 
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
-    const selectedText = text.substring(start, end);
+    const selectedText = text.substring(start, end) || 'link text';
+    const url = prompt('Enter URL:', 'https://');
 
-    if (!selectedText) {
-      alert('Please select some text first!');
-      return;
+    if (url) {
+      const linkText = `[${selectedText}](${url})`;
+      const newText = text.substring(0, start) + linkText + text.substring(end);
+      setText(newText);
     }
+  }, [text]);
 
-    let formattedText = '';
-    switch (formatType) {
-      case 'bold':
-        formattedText = `**${selectedText}**`;
-        break;
-      case 'italic':
-        formattedText = `*${selectedText}*`;
-        break;
-      case 'underline':
-        formattedText = `__${selectedText}__`;
-        break;
-      default:
-        return;
-    }
-
-    const newText = text.substring(0, start) + formattedText + text.substring(end);
-    setText(newText);
-
-    // Restore cursor position
-    setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(start, start + formattedText.length);
-    }, 0);
-  };
-
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(text);
-    alert('Text copied to clipboard!');
-  };
-
-  const handleDownloadTXT = () => {
-    const blob = new Blob([text], { type: 'text/plain' });
-    const cleanFilename = sanitizeFilename(filename);
-    saveAs(blob, `${cleanFilename}.txt`);
-  };
-
-  const handleGeneratePDF = () => {
-    if (!text) return;
-    setIsGenerating(true);
-    try {
-      const doc = new jsPDF();
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
-      const margin = 20;
-      const maxLineWidth = pageWidth - (margin * 2);
-      const lineHeight = fontSize * lineSpacing * 0.35;
-
-      doc.setFontSize(fontSize);
-
-      let cursorY = margin;
-      let pageNumber = 1;
-
-      // Process each line
-      const lines = text.split('\n');
-
-      lines.forEach((line) => {
-        // Parse markdown for this line
-        const segments = parseMarkdown(line);
-
-        // Check if we need a new page
-        if (cursorY + lineHeight > pageHeight - margin - (addPageNumbers ? 10 : 0)) {
-          if (addPageNumbers) {
-            doc.setFontSize(10);
-            doc.text(`Page ${pageNumber}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
-            doc.setFontSize(fontSize);
-          }
-          doc.addPage();
-          pageNumber++;
-          cursorY = margin;
-        }
-
-        // Calculate starting X position based on alignment
-        let currentX = margin;
-        if (alignment === 'center') {
-          // For center alignment, we need to calculate total width first
-          let totalWidth = 0;
-          segments.forEach(seg => {
-            const textWidth = doc.getTextWidth(seg.text);
-            totalWidth += textWidth;
-          });
-          currentX = (pageWidth - totalWidth) / 2;
-        } else if (alignment === 'right') {
-          let totalWidth = 0;
-          segments.forEach(seg => {
-            const textWidth = doc.getTextWidth(seg.text);
-            totalWidth += textWidth;
-          });
-          currentX = pageWidth - margin - totalWidth;
-        }
-
-        // Render each segment with appropriate formatting
-        segments.forEach(seg => {
-          // Set font style based on formatting
-          if (seg.bold && seg.italic) {
-            doc.setFont('helvetica', 'bolditalic');
-          } else if (seg.bold) {
-            doc.setFont('helvetica', 'bold');
-          } else if (seg.italic) {
-            doc.setFont('helvetica', 'italic');
-          } else {
-            doc.setFont('helvetica', 'normal');
-          }
-
-          // Draw text
-          doc.text(seg.text, currentX, cursorY);
-
-          // Draw underline if needed
-          if (seg.underline) {
-            const textWidth = doc.getTextWidth(seg.text);
-            doc.line(currentX, cursorY + 1, currentX + textWidth, cursorY + 1);
-          }
-
-          // Move cursor for next segment
-          currentX += doc.getTextWidth(seg.text);
-        });
-
-        cursorY += lineHeight;
-      });
-
-      // Add final page number
-      if (addPageNumbers) {
-        doc.setFontSize(10);
-        doc.text(`Page ${pageNumber}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
-      }
-
-      const cleanFilename = sanitizeFilename(filename);
-      doc.save(`${cleanFilename}.pdf`);
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      alert('Failed to generate PDF. Please try again.');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const handleGenerateDOCX = async () => {
-    if (!text) return;
-    setIsGenerating(true);
-    try {
-      let docAlignment: typeof AlignmentType.LEFT | typeof AlignmentType.CENTER | typeof AlignmentType.RIGHT = AlignmentType.LEFT;
-      if (alignment === 'center') docAlignment = AlignmentType.CENTER;
-      if (alignment === 'right') docAlignment = AlignmentType.RIGHT;
-
-      const paragraphs = text.split('\n').map(line => {
-        const segments = parseMarkdown(line);
-
-        return new Paragraph({
-          alignment: docAlignment,
-          spacing: {
-            line: Math.round(lineSpacing * 240),
-          },
-          children: segments.map(seg => new TextRun({
-            text: seg.text,
-            size: fontSize * 2,
-            bold: seg.bold,
-            italics: seg.italic,
-            underline: seg.underline ? { type: UnderlineType.SINGLE } : undefined,
-            font: fontFamily,
-          })),
-        });
-      });
-
-      const doc = new Document({
-        sections: [{
-          properties: {},
-          children: paragraphs,
-        }],
-      });
-
-      const blob = await Packer.toBlob(doc);
-      const cleanFilename = sanitizeFilename(filename);
-      saveAs(blob, `${cleanFilename}.docx`);
-    } catch (error) {
-      console.error('Error generating DOCX:', error);
-      alert('Failed to generate DOCX. Please try again.');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const toggleFullScreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen();
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      }
-    }
-  };
-
-  // Show toast notification
-  const showToast = (message: string, type: ToastType = 'info') => {
-    setToast({ message, type, visible: true });
-  };
-
-  // Generate QR code for document
-  const generateQRCode = async () => {
-    console.log("Share button clicked!");
-    if (!text) {
-      console.log("Text is empty, but proceeding for debug...");
-      // showToast('Cannot generate QR code for empty content', 'warning');
-      // return;
-    }
-    console.log("Attempting to generate QR code...");
-    try {
-      // Create a data URL containing the document text
-      const dataUrl = await QRCode.toDataURL(text.substring(0, 2000)); // Limit to 2000 chars for QR
-      console.log("QR code generated successfully");
-      setQrCodeDataUrl(dataUrl);
-      setShowShareModal(true);
-      showToast('QR Code generated successfully!', 'success');
-    } catch (error) {
-      console.error('Error generating QR code:', error);
-      showToast('Failed to generate QR code', 'error');
-    }
-  };
-
-  const summarizeText = () => {
-    if (!text) {
-      showToast('No text to summarize', 'warning');
-      return;
-    }
-
-    // Simple extractive summarization: take first sentence of each paragraph
-    const paragraphs = text.split('\n\n').filter(p => p.trim());
-    const summary = paragraphs
-      .map(p => {
-        const sentences = p.split(/[.!?]+/).filter(s => s.trim());
-        return sentences[0] ? sentences[0].trim() + '.' : '';
-      })
-      .filter(s => s)
-      .join(' ');
-
-    setText(summary);
-    showToast('Text summarized!', 'success');
-  };
-
-  // Smart heading detection
-  const autoDetectHeadings = () => {
-    if (!text) return;
-
-    const lines = text.split('\n');
-    const processedLines = lines.map(line => {
-      const trimmed = line.trim();
-
-      // Skip if already a heading
-      if (trimmed.startsWith('#')) return line;
-
-      // Detect potential headings (short lines, title case, no ending punctuation)
-      if (trimmed.length > 0 && trimmed.length < 60 &&
-        trimmed[0] === trimmed[0].toUpperCase() &&
-        !trimmed.match(/[.!?]$/)) {
-        // Check if it's title case
-        const words = trimmed.split(' ');
-        const isTitleCase = words.every(w => w[0] === w[0].toUpperCase());
-
-        if (isTitleCase) {
-          return `## ${trimmed}`;
-        }
-      }
-
-      return line;
-    });
-
-    setText(processedLines.join('\n'));
-    showToast('Headings detected and formatted!', 'success');
-  };
-
-  // Load preset settings
-  const loadPreset = (preset: any) => {
-    setFontSize(preset.fontSize);
-    setLineSpacing(preset.lineSpacing);
-    setAlignment(preset.alignment);
-    setAddPageNumbers(preset.pageNumbers);
-    setFontFamily(preset.fontFamily);
-    showToast(`Preset "${preset.name}" loaded!`, 'success');
-  };
-
-  // Insert table from TableEditor
-  const insertTable = (tableMarkdown: string) => {
-    const textarea = textareaRef.current;
-    if (!textarea) {
-      setText(text + tableMarkdown);
-      return;
-    }
-
-    const start = textarea.selectionStart;
-    const newText = text.substring(0, start) + tableMarkdown + text.substring(start);
-    setText(newText);
-    showToast('Table inserted!', 'success');
-  };
-
-  // Insert horizontal rule
-  const insertHorizontalRule = () => {
+  const insertImage = useCallback(() => {
     const textarea = textareaRef.current;
     if (!textarea) return;
 
     const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = text.substring(start, end) || 'image description';
+    const url = prompt('Enter Image URL:', 'https://');
+
+    if (url) {
+      const imageText = `![${selectedText}](${url})`;
+      const newText = text.substring(0, start) + imageText + text.substring(end);
+      setText(newText);
+    }
+  }, [text]);
+
+  const handleFindReplace = useCallback((replaceAll: boolean) => {
+    if (!findText) return;
+
+    if (replaceAll) {
+      const newText = text.split(findText).join(replaceText);
+      setText(newText);
+      showToast(`Replaced ${text.split(findText).length - 1} occurrence(s)`, 'success');
+    } else {
+      const index = text.indexOf(findText);
+      if (index !== -1) {
+        const newText = text.substring(0, index) + replaceText + text.substring(index + findText.length);
+        setText(newText);
+        showToast('Replaced 1 occurrence', 'success');
+      } else {
+        showToast('Text not found', 'warning');
+      }
+    }
+    setShowFindReplace(false);
+  }, [text, findText, replaceText, showToast]);
+
+  const insertTable = useCallback((tableMarkdown: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea) {
+      setText(prev => prev + tableMarkdown);
+      return;
+    }
+    const start = textarea.selectionStart;
+    const newText = text.substring(0, start) + tableMarkdown + text.substring(start);
+    setText(newText);
+    showToast('Table inserted!', 'success');
+  }, [text, showToast]);
+
+  const insertHorizontalRule = useCallback(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    const start = textarea.selectionStart;
     const hr = '\n---\n';
     const newText = text.substring(0, start) + hr + text.substring(start);
     setText(newText);
-  };
+  }, [text]);
 
-  // Insert block quote
-  const insertBlockQuote = () => {
+  const insertBlockQuote = useCallback(() => {
     const textarea = textareaRef.current;
     if (!textarea) return;
 
@@ -832,8 +360,7 @@ const Converter = () => {
     const selectedText = text.substring(start, end);
 
     if (selectedText) {
-      const lines = selectedText.split('\n');
-      const quotedLines = lines.map(line => `> ${line}`);
+      const quotedLines = selectedText.split('\n').map(line => `> ${line}`);
       const newText = text.substring(0, start) + quotedLines.join('\n') + text.substring(end);
       setText(newText);
     } else {
@@ -841,10 +368,9 @@ const Converter = () => {
       const newText = text.substring(0, start) + quote + text.substring(start);
       setText(newText);
     }
-  };
+  }, [text]);
 
-  // Insert code block
-  const insertCodeBlock = () => {
+  const insertCodeBlock = useCallback(() => {
     const textarea = textareaRef.current;
     if (!textarea) return;
 
@@ -858,132 +384,208 @@ const Converter = () => {
 
     const newText = text.substring(0, start) + codeBlock + text.substring(end);
     setText(newText);
-  };
+  }, [text]);
 
-  // Enhanced PDF generation with password protection and watermark
-  const handleGeneratePDFWithProtection = async () => {
-    if (!text) return;
+  // ── AI Features ─────────────────────────────────────────────
 
-    setIsGenerating(true);
-    try {
-      // First generate PDF using jsPDF
-      const doc = new jsPDF();
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
-      const margin = 20;
-      const lineHeight = fontSize * lineSpacing * 0.35;
-
-      doc.setFontSize(fontSize);
-
-      let cursorY = margin;
-      let pageNumber = 1;
-
-      const lines = text.split('\n');
-
-      lines.forEach((line) => {
-        const segments = parseMarkdown(line);
-
-        if (cursorY + lineHeight > pageHeight - margin - (addPageNumbers ? 10 : 0)) {
-          if (addPageNumbers) {
-            doc.setFontSize(10);
-            doc.text(`Page ${pageNumber}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
-            doc.setFontSize(fontSize);
-          }
-          doc.addPage();
-          pageNumber++;
-          cursorY = margin;
-        }
-
-        let currentX = margin;
-        if (alignment === 'center') {
-          let totalWidth = 0;
-          segments.forEach(seg => {
-            totalWidth += doc.getTextWidth(seg.text);
-          });
-          currentX = (pageWidth - totalWidth) / 2;
-        } else if (alignment === 'right') {
-          let totalWidth = 0;
-          segments.forEach(seg => {
-            totalWidth += doc.getTextWidth(seg.text);
-          });
-          currentX = pageWidth - margin - totalWidth;
-        }
-
-        segments.forEach(seg => {
-          if (seg.bold && seg.italic) {
-            doc.setFont('helvetica', 'bolditalic');
-          } else if (seg.bold) {
-            doc.setFont('helvetica', 'bold');
-          } else if (seg.italic) {
-            doc.setFont('helvetica', 'italic');
-          } else {
-            doc.setFont('helvetica', 'normal');
-          }
-
-          doc.text(seg.text, currentX, cursorY);
-
-          if (seg.underline) {
-            const textWidth = doc.getTextWidth(seg.text);
-            doc.line(currentX, cursorY + 1, currentX + textWidth, cursorY + 1);
-          }
-
-          currentX += doc.getTextWidth(seg.text);
-        });
-
-        cursorY += lineHeight;
-      });
-
-      if (addPageNumbers) {
-        doc.setFontSize(10);
-        doc.text(`Page ${pageNumber}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
-      }
-
-      // Add watermark if specified
-      if (watermarkText) {
-        const totalPages = doc.getNumberOfPages();
-        for (let i = 1; i <= totalPages; i++) {
-          doc.setPage(i);
-          doc.setFontSize(60);
-          doc.setTextColor(200, 200, 200);
-          doc.text(watermarkText, pageWidth / 2, pageHeight / 2, {
-            align: 'center',
-            angle: 45
-          });
-        }
-      }
-
-      // Get PDF as array buffer
-      const pdfArrayBuffer = doc.output('arraybuffer');
-
-      // If password protection is needed, use pdf-lib
-      if (pdfPassword) {
-        const pdfDoc = await PDFDocument.load(pdfArrayBuffer);
-
-        // Note: pdf-lib doesn't support encryption directly in browser
-        // This is a limitation - we'll save without password for now
-        const pdfBytes = await pdfDoc.save();
-        const blob = new Blob([pdfBytes as any], { type: 'application/pdf' });
-        const cleanFilename = sanitizeFilename(filename);
-        saveAs(blob, `${cleanFilename}.pdf`);
-        showToast('PDF generated (password protection requires server-side processing)', 'warning');
-      } else {
-        const cleanFilename = sanitizeFilename(filename);
-        doc.save(`${cleanFilename}.pdf`);
-        showToast('PDF generated successfully!', 'success');
-      }
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      showToast('Failed to generate PDF', 'error');
-    } finally {
-      setIsGenerating(false);
+  const handleSummarize = useCallback(() => {
+    if (!text) {
+      showToast('No text to summarize', 'warning');
+      return;
     }
+    setText(summarizeTextUtil(text));
+    showToast('Text summarized!', 'success');
+  }, [text, showToast]);
+
+  const handleAutoDetectHeadings = useCallback(() => {
+    if (!text) return;
+    setText(autoDetectHeadingsUtil(text));
+    showToast('Headings detected and formatted!', 'success');
+  }, [text, showToast]);
+
+  // ── Sharing & QR ────────────────────────────────────────────
+
+  const generateQRCode = useCallback(async () => {
+    try {
+      const dataUrl = await QRCode.toDataURL(text.substring(0, 2000));
+      setQrCodeDataUrl(dataUrl);
+      setShowShareModal(true);
+      showToast('QR Code generated successfully!', 'success');
+    } catch (error) {
+      console.error('Error generating QR code:', error);
+      showToast('Failed to generate QR code', 'error');
+    }
+  }, [text, showToast]);
+
+  // ── File Generation ─────────────────────────────────────────
+
+  const pdfOptions = {
+    fontSize,
+    lineSpacing,
+    alignment,
+    addPageNumbers,
+    fontFamily,
+    watermarkText,
+    pdfPassword,
   };
 
+  const handleGeneratePDF = useCallback(async () => {
+    if (!text) return;
+    setIsGenerating(true);
+    const result = await generatePDF(text, filename, pdfOptions);
+    if (result.success) {
+      showToast(result.message, 'success');
+    } else {
+      showToast(result.message, 'error');
+    }
+    setIsGenerating(false);
+  }, [text, filename, pdfOptions, generatePDF, showToast]);
+
+  const handleGenerateDOCX = useCallback(async () => {
+    if (!text) return;
+    setIsGenerating(true);
+    const result = await generateDOCX(text, filename, {
+      fontSize, lineSpacing, alignment, fontFamily,
+    });
+    if (result.success) {
+      showToast(result.message, 'success');
+    } else {
+      showToast(result.message, 'error');
+    }
+    setIsGenerating(false);
+  }, [text, filename, fontSize, lineSpacing, alignment, fontFamily, generateDOCX, showToast]);
+
+  const handleDownloadTXT = useCallback(() => {
+    const blob = new Blob([text], { type: 'text/plain' });
+    const cleanFilename = sanitizeFilename(filename);
+    saveAs(blob, `${cleanFilename}.txt`);
+    showToast('TXT file downloaded!', 'success');
+  }, [text, filename, showToast]);
+
+  // ── Preset Loading ──────────────────────────────────────────
+
+  const loadPreset = useCallback((preset: any) => {
+    setFontSize(preset.fontSize);
+    setLineSpacing(preset.lineSpacing);
+    setAlignment(preset.alignment);
+    setAddPageNumbers(preset.pageNumbers);
+    setFontFamily(preset.fontFamily);
+    showToast(`Preset "${preset.name}" loaded!`, 'success');
+  }, [showToast]);
+
+  // ── Fullscreen ──────────────────────────────────────────────
+
+  const toggleFullScreen = useCallback(() => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+    } else if (document.exitFullscreen) {
+      document.exitFullscreen();
+    }
+  }, []);
+
+  // ── Drag & Drop File Import ─────────────────────────────────
+
+  const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+
+    const files = e.dataTransfer.files;
+    if (files.length === 0) return;
+
+    const file = files[0];
+    const validTypes = ['text/plain', 'text/markdown', 'text/md', ''];
+    const validExtensions = ['.txt', '.md', '.markdown', '.text'];
+    const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+
+    if (!validTypes.includes(file.type) && !validExtensions.includes(ext)) {
+      showToast('Please drop a .txt or .md file', 'warning');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      setText(content);
+      const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
+      setFilename(nameWithoutExt);
+      showToast(`Imported "${file.name}" successfully!`, 'success');
+    };
+    reader.onerror = () => {
+      showToast('Failed to read file', 'error');
+    };
+    reader.readAsText(file);
+  }, [showToast]);
+
+  const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      setText(content);
+      const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
+      setFilename(nameWithoutExt);
+      showToast(`Imported "${file.name}" successfully!`, 'success');
+    };
+    reader.readAsText(file);
+    e.target.value = ''; // Reset so same file can be imported again
+  }, [showToast]);
+
+  // ── Simple Markdown to HTML for Preview ──────────────────────
+
+  const renderMarkdownPreview = useCallback((inputText: string): string => {
+    let html = inputText
+      // Escape HTML first
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      // Headings
+      .replace(/^### (.+)$/gm, '<h3 class="text-lg font-bold mt-3 mb-1">$1</h3>')
+      .replace(/^## (.+)$/gm, '<h2 class="text-xl font-bold mt-4 mb-1">$1</h2>')
+      .replace(/^# (.+)$/gm, '<h1 class="text-2xl font-bold mt-4 mb-2">$1</h1>')
+      // Bold, italic, underline
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/__(.+?)__/g, '<u>$1</u>')
+      // Block quotes
+      .replace(/^&gt; (.+)$/gm, '<blockquote class="border-l-4 border-indigo-400 pl-3 italic text-gray-500">$1</blockquote>')
+      // Horizontal rules
+      .replace(/^---$/gm, '<hr class="my-3 border-gray-300" />')
+      // Code blocks
+      .replace(/```([\s\S]*?)```/g, '<pre class="bg-gray-800 text-green-400 rounded p-2 my-2 text-sm overflow-x-auto"><code>$1</code></pre>')
+      // Inline code
+      .replace(/`(.+?)`/g, '<code class="bg-gray-200 dark:bg-gray-700 px-1 rounded text-sm">$1</code>')
+      // Images
+      .replace(/!\[(.*?)\]\((.*?)\)/g, '<img src="$2" alt="$1" class="max-w-full h-auto max-h-96 rounded-lg my-2 object-contain border dark:border-gray-600" />')
+      // Links
+      .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" class="text-blue-500 underline" target="_blank">$1</a>')
+      // Line breaks
+      .replace(/\n/g, '<br/>');
+
+    return html;
+  }, []);
+
+  // ── Render ──────────────────────────────────────────────────
 
   return (
     <div className={`min-h-screen py-12 px-4 sm:px-6 lg:px-8 font-sans transition-colors duration-300 ${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
       <div className="max-w-[95%] mx-auto">
 
+        {/* Header */}
         <div className="flex justify-between items-start mb-10">
           <div className="text-center flex-1">
             <div className="flex items-center justify-center gap-3 mb-2">
@@ -997,7 +599,6 @@ const Converter = () => {
             </p>
           </div>
           <div className="flex gap-2">
-
             <button
               onClick={() => setDarkMode(!darkMode)}
               className={`p-2 rounded-full ${darkMode ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' : 'bg-white text-gray-600 hover:bg-gray-100'} shadow-md transition-all`}
@@ -1008,49 +609,18 @@ const Converter = () => {
           </div>
         </div>
 
-        {/* Templates Section */}
+        {/* Main Layout: Sidebar + Editor */}
         <div className="flex flex-col md:flex-row gap-6">
-          {/* Sidebar - Letter Types */}
-          <div className="w-full md:w-64 flex-shrink-0">
-            <div className={`p-4 rounded-xl border sticky top-4 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-              <div className="flex items-center gap-2 mb-4">
-                <BookOpen className="w-5 h-5 text-indigo-500" />
-                <h3 className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Letter Types</h3>
-              </div>
 
-              <div className="space-y-6">
-                <div>
-                  <p className={`text-xs font-medium mb-2 uppercase tracking-wider ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Academic</p>
-                  <div className="flex flex-col gap-2">
-                    <button onClick={() => loadTemplate('blank')} className={`text-left px-3 py-2 rounded-lg text-sm transition-all ${darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}>Blank Document</button>
-                    <button onClick={() => loadTemplate('essay')} className={`text-left px-3 py-2 rounded-lg text-sm transition-all ${darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}>Essay</button>
-                    <button onClick={() => loadTemplate('report')} className={`text-left px-3 py-2 rounded-lg text-sm transition-all ${darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}>Report</button>
-                    <button onClick={() => loadTemplate('assignment')} className={`text-left px-3 py-2 rounded-lg text-sm transition-all ${darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}>Assignment</button>
-                  </div>
-                </div>
-
-                <div>
-                  <p className={`text-xs font-medium mb-2 uppercase tracking-wider ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Professional Letters</p>
-                  <div className="flex flex-col gap-2">
-                    <button onClick={() => loadTemplate('formalLetter')} className={`text-left px-3 py-2 rounded-lg text-sm transition-all ${darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}>Formal Letter</button>
-                    <button onClick={() => loadTemplate('coverLetter')} className={`text-left px-3 py-2 rounded-lg text-sm transition-all ${darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}>Cover Letter</button>
-                    <button onClick={() => loadTemplate('requestLetter')} className={`text-left px-3 py-2 rounded-lg text-sm transition-all ${darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}>Request Letter</button>
-                    <button onClick={() => loadTemplate('recommendationRequest')} className={`text-left px-3 py-2 rounded-lg text-sm transition-all ${darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}>Recommendation</button>
-                    <button onClick={() => loadTemplate('complaintLetter')} className={`text-left px-3 py-2 rounded-lg text-sm transition-all ${darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}>Complaint</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          {/* Sidebar Templates */}
+          <SidebarTemplates darkMode={darkMode} onLoadTemplate={loadTemplate} />
 
           {/* Main Content Area */}
           <div className="flex-1">
-
-
-
             <div className={`rounded-2xl shadow-xl overflow-hidden border ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'}`}>
               <div className="p-8">
 
+                {/* Filename & Alignment Row */}
                 <div className="flex flex-col sm:flex-row gap-6 mb-6">
                   <div className="flex-1">
                     <label htmlFor="filename" className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
@@ -1098,276 +668,166 @@ const Converter = () => {
                   </div>
                 </div>
 
+                {/* Stats & Toolbar */}
                 <div className="mb-4">
                   <div className="flex justify-between items-center mb-2">
                     <label htmlFor="content" className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                       Your Content
                     </label>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'} flex items-center gap-3`}>
-                        <span>{stats.words} words</span>
-                        <span>•</span>
-                        <span>{stats.chars} chars</span>
-                        <span>•</span>
-                        <span>{stats.paragraphs} ¶</span>
-                        <span>•</span>
-                        <span>{stats.sentences} sentences</span>
-                        {stats.readingTime > 0 && (
-                          <>
-                            <span>•</span>
-                            <span>~{stats.readingTime} min read</span>
-                          </>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={undo}
-                          disabled={historyIndex <= 0}
-                          className={`text-xs flex items-center gap-1 px-2 py-1 rounded ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'} ${historyIndex <= 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
-                          title="Undo (Ctrl+Z)"
-                        >
-                          ↶
-                        </button>
-                        <button
-                          onClick={redo}
-                          disabled={historyIndex >= history.length - 1}
-                          className={`text-xs flex items-center gap-1 px-2 py-1 rounded ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'} ${historyIndex >= history.length - 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
-                          title="Redo (Ctrl+Y)"
-                        >
-                          ↷
-                        </button>
-                        <button onClick={copyToClipboard} className={`text-xs flex items-center gap-1 px-2 py-1 rounded ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'}`} title="Copy to clipboard">
-                          <Copy className="w-3 h-3" /> Copy
-                        </button>
-                        <button onClick={clearDraft} className={`text-xs flex items-center gap-1 px-2 py-1 rounded ${darkMode ? 'bg-red-900 hover:bg-red-800 text-red-200' : 'bg-red-100 hover:bg-red-200 text-red-700'}`} title="Clear all text">
-                          Clear
-                        </button>
-                      </div>
 
-                      {/* Lists */}
-                      <div className="flex gap-1 border-r pr-2 border-gray-400">
-                        <button onClick={() => insertList('bullet')} className={`px-2 py-1 text-xs rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="Bullet List">• List</button>
-                        <button onClick={() => insertList('numbered')} className={`px-2 py-1 text-xs rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="Numbered List">1. List</button>
-                      </div>
-
-                      {/* Text Case */}
-                      <div className="flex gap-1 border-r pr-2 border-gray-400">
-                        <button onClick={() => changeCase('upper')} className={`px-2 py-1 text-xs rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="UPPERCASE">AA</button>
-                        <button onClick={() => changeCase('lower')} className={`px-2 py-1 text-xs rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="lowercase">aa</button>
-                        <button onClick={() => changeCase('title')} className={`px-2 py-1 text-xs rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="Title Case">Aa</button>
-                      </div>
-
-                      {/* Insert Link */}
-                      <button onClick={insertLink} className={`px-3 py-1 text-xs rounded ${darkMode ? 'hover:bg-gray-600 bg-blue-900' : 'hover:bg-blue-100 bg-blue-50'} text-blue-600 dark:text-blue-300`} title="Insert Link">🔗 Link</button>
-
-                      {/* Find & Replace */}
-                      <button onClick={() => setShowFindReplace(true)} className={`px-3 py-1 text-xs rounded ${darkMode ? 'hover:bg-gray-600 bg-purple-900' : 'hover:bg-purple-100 bg-purple-50'} text-purple-600 dark:text-purple-300`} title="Find & Replace">🔍 Find</button>
-
-                      {/* AI Tools */}
-                      <div className="flex gap-1 border-r pr-2 border-gray-400">
-                        <button onClick={summarizeText} className={`px-3 py-1 text-xs rounded flex items-center gap-1 ${darkMode ? 'hover:bg-gray-600 bg-indigo-900' : 'hover:bg-indigo-100 bg-indigo-50'} text-indigo-600 dark:text-indigo-300`} title="AI Summarize">
-                          <Sparkles className="w-3 h-3" /> Summarize
-                        </button>
-                        <button onClick={autoDetectHeadings} className={`px-3 py-1 text-xs rounded flex items-center gap-1 ${darkMode ? 'hover:bg-gray-600 bg-indigo-900' : 'hover:bg-indigo-100 bg-indigo-50'} text-indigo-600 dark:text-indigo-300`} title="Auto-detect Headings">
-                          <Hash className="w-3 h-3" /> Auto H
-                        </button>
-                      </div>
-
-                      {/* Advanced Formatting */}
-                      <div className="flex gap-1 border-r pr-2 border-gray-400">
-                        <button onClick={() => setShowTableEditor(true)} className={`px-3 py-1 text-xs rounded flex items-center gap-1 ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="Insert Table">
-                          <Table className="w-3 h-3" /> Table
-                        </button>
-                        <button onClick={insertCodeBlock} className={`px-3 py-1 text-xs rounded flex items-center gap-1 ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="Insert Code Block">
-                          <Code className="w-3 h-3" /> Code
-                        </button>
-                        <button onClick={insertBlockQuote} className={`px-3 py-1 text-xs rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="Insert Quote">
-                          " Quote
-                        </button>
-                        <button onClick={insertHorizontalRule} className={`px-3 py-1 text-xs rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="Horizontal Rule">
-                          ─ HR
-                        </button>
-                      </div>
-
-                      {/* Sharing & Presets */}
-                      <div className="flex gap-1 border-r pr-2 border-gray-400">
-                        <button onClick={generateQRCode} className={`px-3 py-1 text-xs rounded flex items-center gap-1 ${darkMode ? 'hover:bg-gray-600 bg-green-900' : 'hover:bg-green-100 bg-green-50'} text-green-600 dark:text-green-300`} title="Generate QR Code">
-                          <Share2 className="w-3 h-3" /> Share
-                        </button>
-                        <button onClick={() => setShowPresetManager(true)} className={`px-3 py-1 text-xs rounded flex items-center gap-1 ${darkMode ? 'hover:bg-gray-600 bg-orange-900' : 'hover:bg-orange-100 bg-orange-50'} text-orange-600 dark:text-orange-300`} title="Manage Presets">
-                          <Save className="w-3 h-3" /> Presets
-                        </button>
-                      </div>
-
-                      {/* Focus Mode */}
-                      <button onClick={() => setFocusMode(!focusMode)} className={`px-3 py-1 text-xs rounded ${focusMode ? 'bg-green-600 text-white' : (darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200')}`} title="Focus Mode">
-                        {focusMode ? '👁️ Exit Focus' : '🎯 Focus'}
-                      </button>
-
-                      {/* Full Screen */}
-                      <button onClick={toggleFullScreen} className={`px-3 py-1 text-xs rounded ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`} title="Full Screen">
-                        <Maximize className="w-4 h-4 inline mr-1" /> Full Screen
-                      </button>
-
-                      {/* Word Goal */}
-                      <div className="flex items-center gap-2 ml-auto">
-                        <input
-                          type="number"
-                          placeholder="Word goal"
-                          value={wordGoal || ''}
-                          onChange={(e) => setWordGoal(Number(e.target.value))}
-                          className={`w-24 px-2 py-1 text-xs rounded border ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'border-gray-300'}`}
-                        />
-                        {wordGoal > 0 && (
-                          <div className="flex items-center gap-1">
-                            <div className="w-20 h-2 bg-gray-300 dark:bg-gray-600 rounded-full overflow-hidden">
-                              <div
-                                className={`h-full ${stats.words >= wordGoal ? 'bg-green-500' : 'bg-blue-500'}`}
-                                style={{ width: `${Math.min((stats.words / wordGoal) * 100, 100)}%` }}
-                              ></div>
-                            </div>
-                            <span className="text-xs">{Math.round((stats.words / wordGoal) * 100)}%</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                    <EditorStats
+                      darkMode={darkMode}
+                      stats={stats}
+                      canUndo={canUndo}
+                      canRedo={canRedo}
+                      wordGoal={wordGoal}
+                      onWordGoalChange={setWordGoal}
+                      onUndo={handleUndo}
+                      onRedo={handleRedo}
+                      onCopy={copyToClipboard}
+                      onClear={clearDraft}
+                    />
                   </div>
 
-                  {/* Formatting Toolbar */}
-                  <div className={`flex flex-wrap items-center gap-2 mb-2 p-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'}`}>
-                    <select
-                      value={fontFamily}
-                      onChange={(e) => setFontFamily(e.target.value)}
-                      className={`h-9 text-sm rounded-md border-none focus:ring-2 focus:ring-indigo-500 ${darkMode ? 'bg-gray-600 text-white' : 'bg-white text-gray-900'}`}
-                      title="Font Family"
-                    >
-                      <option value="Arial">Arial</option>
-                      <option value="Times New Roman">Times New Roman</option>
-                      <option value="Courier New">Courier New</option>
-                      <option value="Georgia">Georgia</option>
-                    </select>
+                  <EditorToolbar
+                    darkMode={darkMode}
+                    fontSize={fontSize}
+                    lineSpacing={lineSpacing}
+                    fontFamily={fontFamily}
+                    addPageNumbers={addPageNumbers}
+                    focusMode={focusMode}
+                    onFontSizeChange={setFontSize}
+                    onLineSpacingChange={setLineSpacing}
+                    onFontFamilyChange={setFontFamily}
+                    onTogglePageNumbers={() => setAddPageNumbers(!addPageNumbers)}
+                    onApplyFormatting={applyFormatting}
+                    onInsertHeading={insertHeading}
+                    onInsertList={insertList}
+                    onChangeCase={changeCase}
+                    onInsertLink={insertLink}
+                    onInsertImage={insertImage}
+                    onShowFindReplace={() => setShowFindReplace(true)}
+                    onSummarize={handleSummarize}
+                    onAutoDetectHeadings={handleAutoDetectHeadings}
+                    onShowTableEditor={() => setShowTableEditor(true)}
+                    onInsertCodeBlock={insertCodeBlock}
+                    onInsertBlockQuote={insertBlockQuote}
+                    onInsertHorizontalRule={insertHorizontalRule}
+                    onGenerateQRCode={generateQRCode}
+                    onShowPresetManager={() => setShowPresetManager(true)}
+                    onShowDraftManager={() => setShowDraftManager(true)}
+                    onToggleFocusMode={() => setFocusMode(!focusMode)}
+                    onToggleFullScreen={toggleFullScreen}
+                  />
 
-                    <select
-                      value={fontSize}
-                      onChange={(e) => setFontSize(Number(e.target.value))}
-                      className={`h-9 text-sm rounded-md border-none focus:ring-2 focus:ring-indigo-500 ${darkMode ? 'bg-gray-600 text-white' : 'bg-white text-gray-900'}`}
-                      title="Font Size"
-                    >
-                      <option value={10}>10</option>
-                      <option value={11}>11</option>
-                      <option value={12}>12</option>
-                      <option value={14}>14</option>
-                      <option value={16}>16</option>
-                      <option value={18}>18</option>
-                      <option value={20}>20</option>
-                      <option value={24}>24</option>
-                    </select>
-
-                    <select
-                      value={lineSpacing}
-                      onChange={(e) => setLineSpacing(Number(e.target.value))}
-                      className={`h-9 text-sm rounded-md border-none focus:ring-2 focus:ring-indigo-500 ${darkMode ? 'bg-gray-600 text-white' : 'bg-white text-gray-900'}`}
-                      title="Line Spacing"
-                    >
-                      <option value={1}>Single</option>
-                      <option value={1.5}>1.5</option>
-                      <option value={2}>Double</option>
-                    </select>
-                    <div className={`w-px h-6 mx-1 ${darkMode ? 'bg-gray-600' : 'bg-gray-300'}`}></div>
+                  {/* Preview Toggle & Import Button */}
+                  <div className="flex items-center gap-2 mb-2">
                     <button
-                      onClick={() => applyFormatting('bold')}
-                      className={`p-2 rounded hover:bg-opacity-80 transition-all ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`}
-                      title="Bold (select text first)"
+                      onClick={() => setShowPreview(!showPreview)}
+                      className={`flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg transition-all ${showPreview ? 'bg-indigo-600 text-white' : (darkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-700')}`}
+                      title="Toggle Live Preview"
                     >
-                      <Bold className="w-4 h-4" />
+                      {showPreview ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      {showPreview ? 'Hide Preview' : 'Live Preview'}
                     </button>
-                    <button
-                      onClick={() => applyFormatting('italic')}
-                      className={`p-2 rounded hover:bg-opacity-80 transition-all ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`}
-                      title="Italic (select text first)"
+                    <label
+                      className={`flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg cursor-pointer transition-all ${darkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}
+                      title="Import a .txt or .md file"
                     >
-                      <Italic className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => applyFormatting('underline')}
-                      className={`p-2 rounded hover:bg-opacity-80 transition-all ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`}
-                      title="Underline (select text first)"
-                    >
-                      <Underline className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => setAddPageNumbers(!addPageNumbers)}
-                      className={`p-2 rounded hover:bg-opacity-80 transition-all ${addPageNumbers ? (darkMode ? 'bg-gray-600' : 'bg-gray-200') : ''} ${darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`}
-                      title="Toggle Page Numbers"
-                    >
-                      <Hash className="w-4 h-4" />
-                    </button>
-                    <div className={`ml-2 px-3 py-1 text-xs flex items-center ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                      Select text and click a button to format
-                    </div>
+                      <Upload className="w-3.5 h-3.5" /> Import File
+                      <input type="file" accept=".txt,.md,.markdown,.text" className="hidden" onChange={handleFileInput} />
+                    </label>
                   </div>
 
-                  <textarea
-                    ref={textareaRef}
-                    id="content"
-                    rows={20}
-                    className={`block w-full rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 sm:text-sm p-4 border resize-y font-mono ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-indigo-400' : 'border-gray-300 text-gray-800 focus:border-indigo-500'}`}
-                    placeholder="Paste your notes here... (e.g., project report, study notes, assignment)
+                  {/* Drag & Drop Zone + Editor Area */}
+                  <div
+                    className={`relative transition-all rounded-lg ${isDragOver ? 'ring-4 ring-indigo-400 ring-opacity-70' : ''}`}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                  >
+                    {/* Drag overlay */}
+                    {isDragOver && (
+                      <div className="absolute inset-0 z-10 flex items-center justify-center bg-indigo-600 bg-opacity-20 rounded-lg border-2 border-dashed border-indigo-400">
+                        <div className="flex flex-col items-center gap-2 text-indigo-600 dark:text-indigo-300">
+                          <Upload className="w-10 h-10" />
+                          <span className="font-semibold text-lg">Drop your file here</span>
+                          <span className="text-sm">.txt or .md files supported</span>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className={`flex gap-0 ${showPreview ? 'flex-col lg:flex-row' : ''}`}>
+                      {/* Textarea */}
+                      <textarea
+                        ref={textareaRef}
+                        id="content"
+                        rows={20}
+                        className={`block ${showPreview ? 'w-full lg:w-1/2' : 'w-full'} rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 sm:text-sm p-4 border resize-y ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-indigo-400' : 'border-gray-300 text-gray-800 focus:border-indigo-500'}`}
+                        placeholder={`Paste your notes here... (e.g., project report, study notes, assignment)
 
 Try keyboard shortcuts:
 • Ctrl+B for **bold**
 • Ctrl+I for *italic*  
 • Ctrl+U for __underline__
 • Ctrl+S to save as PDF
-• Press ? for more shortcuts"
-                    value={text}
-                    onChange={(e) => setText(e.target.value)}
-                    style={{ textAlign: alignment as any, fontSize: `${fontSize}px`, lineHeight: lineSpacing }}
-                  />
+• Press ? for more shortcuts
+
+💡 Tip: Drag & drop a .txt or .md file here to import!`}
+                        value={text}
+                        onChange={(e) => setText(e.target.value)}
+                        style={{
+                          textAlign: alignment as any,
+                          fontSize: `${fontSize}px`,
+                          lineHeight: lineSpacing,
+                          fontFamily: fontFamily,
+                        }}
+                      />
+
+                      {/* Live Preview Panel */}
+                      {showPreview && (
+                        <div
+                          className={`${showPreview ? 'w-full lg:w-1/2' : 'hidden'} rounded-lg border p-4 overflow-y-auto ${darkMode ? 'bg-gray-750 border-gray-600 text-gray-200' : 'bg-white border-gray-300 text-gray-800'}`}
+                          style={{
+                            minHeight: '400px',
+                            maxHeight: '600px',
+                            fontSize: `${fontSize}px`,
+                            lineHeight: lineSpacing,
+                            fontFamily: fontFamily,
+                          }}
+                        >
+                          <div className={`text-xs font-semibold uppercase tracking-wider mb-3 pb-2 border-b ${darkMode ? 'text-gray-400 border-gray-600' : 'text-gray-500 border-gray-200'}`}>
+                            📄 Live Preview
+                          </div>
+                          {text ? (
+                            <div
+                              dangerouslySetInnerHTML={{ __html: renderMarkdownPreview(text) }}
+                              style={{ textAlign: alignment as any }}
+                            />
+                          ) : (
+                            <p className={`italic ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Start typing to see a preview...</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-8">
-                  <button
-                    onClick={handleGeneratePDF}
-                    disabled={!text || isGenerating}
-                    className={`flex items-center justify-center px-4 py-3 border border-transparent text-sm font-medium rounded-xl text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 ${(!text || isGenerating) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    <FileText className="w-5 h-5 mr-2" />
-                    PDF
-                  </button>
-
-                  <button
-                    onClick={handleGenerateDOCX}
-                    disabled={!text || isGenerating}
-                    className={`flex items-center justify-center px-4 py-3 border border-transparent text-sm font-medium rounded-xl text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 ${(!text || isGenerating) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    <FileType className="w-5 h-5 mr-2" />
-                    DOCX
-                  </button>
-
-                  <button
-                    onClick={handleDownloadTXT}
-                    disabled={!text}
-                    className={`flex items-center justify-center px-4 py-3 border border-transparent text-sm font-medium rounded-xl text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 ${!text ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    <Download className="w-5 h-5 mr-2" />
-                    TXT
-                  </button>
-
-                  <button
-                    onClick={copyToClipboard}
-                    disabled={!text}
-                    className={`flex items-center justify-center px-4 py-3 border border-transparent text-sm font-medium rounded-xl text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 ${!text ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    <Copy className="w-5 h-5 mr-2" />
-                    Copy
-                  </button>
-                </div>
+                {/* Action Buttons */}
+                <ActionButtons
+                  hasText={!!text}
+                  isGenerating={isGenerating}
+                  onGeneratePDF={handleGeneratePDF}
+                  onGenerateDOCX={handleGenerateDOCX}
+                  onDownloadTXT={handleDownloadTXT}
+                  onCopyToClipboard={copyToClipboard}
+                />
               </div>
             </div>
           </div>
-
         </div>
+
+        {/* Status Bar */}
         <div className={`px-8 py-4 border-t flex justify-between items-center text-sm ${darkMode ? 'bg-gray-900 border-gray-700 text-gray-400' : 'bg-gray-50 border-gray-100 text-gray-500'}`}>
           <span>100% Client-side processing</span>
           <div className="flex gap-4">
@@ -1376,118 +836,104 @@ Try keyboard shortcuts:
           </div>
         </div>
 
+        {/* ── Modals ─────────────────────────────────────────── */}
 
         {/* Keyboard Shortcuts Modal */}
-        {
-          showShortcuts && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowShortcuts(false)}>
-              <div className={`max-w-2xl w-full rounded-xl p-6 ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`} onClick={(e) => e.stopPropagation()}>
-                <h2 className="text-2xl font-bold mb-4">⌨️ Keyboard Shortcuts</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <h3 className="font-semibold mb-2 text-indigo-500">Formatting</h3>
-                    <div className="space-y-1 text-sm">
-                      <div className="flex justify-between"><span>Bold</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+B</kbd></div>
-                      <div className="flex justify-between"><span>Italic</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+I</kbd></div>
-                      <div className="flex justify-between"><span>Underline</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+U</kbd></div>
-                    </div>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold mb-2 text-green-500">File Operations</h3>
-                    <div className="space-y-1 text-sm">
-                      <div className="flex justify-between"><span>Save as PDF</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+S</kbd></div>
-                      <div className="flex justify-between"><span>Save as DOCX</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+Shift+S</kbd></div>
-                    </div>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold mb-2 text-purple-500">Editing</h3>
-                    <div className="space-y-1 text-sm">
-                      <div className="flex justify-between"><span>Undo</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+Z</kbd></div>
-                      <div className="flex justify-between"><span>Redo</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+Y</kbd></div>
-                    </div>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold mb-2 text-blue-500">Help</h3>
-                    <div className="space-y-1 text-sm">
-                      <div className="flex justify-between"><span>Show shortcuts</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">?</kbd></div>
-                    </div>
+        {showShortcuts && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowShortcuts(false)}>
+            <div className={`max-w-2xl w-full rounded-xl p-6 ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`} onClick={(e) => e.stopPropagation()}>
+              <h2 className="text-2xl font-bold mb-4">⌨️ Keyboard Shortcuts</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <h3 className="font-semibold mb-2 text-indigo-500">Formatting</h3>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between"><span>Bold</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+B</kbd></div>
+                    <div className="flex justify-between"><span>Italic</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+I</kbd></div>
+                    <div className="flex justify-between"><span>Underline</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+U</kbd></div>
                   </div>
                 </div>
-                <button onClick={() => setShowShortcuts(false)} className="mt-6 w-full py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+                <div>
+                  <h3 className="font-semibold mb-2 text-green-500">File Operations</h3>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between"><span>Save as PDF</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+S</kbd></div>
+                    <div className="flex justify-between"><span>Save as DOCX</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+Shift+S</kbd></div>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-2 text-purple-500">Editing</h3>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between"><span>Undo</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+Z</kbd></div>
+                    <div className="flex justify-between"><span>Redo</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">Ctrl+Y</kbd></div>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-2 text-blue-500">Help</h3>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between"><span>Show shortcuts</span><kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">?</kbd></div>
+                  </div>
+                </div>
+              </div>
+              <button onClick={() => setShowShortcuts(false)} className="mt-6 w-full py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Find & Replace Modal */}
+        {showFindReplace && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowFindReplace(false)}>
+            <div className={`max-w-md w-full rounded-xl p-6 ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`} onClick={(e) => e.stopPropagation()}>
+              <h2 className="text-2xl font-bold mb-4">🔍 Find & Replace</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Find</label>
+                  <input
+                    type="text"
+                    value={findText}
+                    onChange={(e) => setFindText(e.target.value)}
+                    className={`w-full px-3 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'}`}
+                    placeholder="Enter text to find..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Replace with</label>
+                  <input
+                    type="text"
+                    value={replaceText}
+                    onChange={(e) => setReplaceText(e.target.value)}
+                    className={`w-full px-3 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'}`}
+                    placeholder="Enter replacement text..."
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => handleFindReplace(false)} className="flex-1 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    Replace Next
+                  </button>
+                  <button onClick={() => handleFindReplace(true)} className="flex-1 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                    Replace All
+                  </button>
+                </div>
+                <button onClick={() => setShowFindReplace(false)} className="w-full py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
                   Close
                 </button>
               </div>
             </div>
-          )
-        }
-
-        {/* Find & Replace Modal */}
-        {
-          showFindReplace && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowFindReplace(false)}>
-              <div className={`max-w-md w-full rounded-xl p-6 ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`} onClick={(e) => e.stopPropagation()}>
-                <h2 className="text-2xl font-bold mb-4">🔍 Find & Replace</h2>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Find</label>
-                    <input
-                      type="text"
-                      value={findText}
-                      onChange={(e) => setFindText(e.target.value)}
-                      className={`w-full px-3 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'}`}
-                      placeholder="Enter text to find..."
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Replace with</label>
-                    <input
-                      type="text"
-                      value={replaceText}
-                      onChange={(e) => setReplaceText(e.target.value)}
-                      className={`w-full px-3 py-2 rounded-lg border ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'border-gray-300'}`}
-                      placeholder="Enter replacement text..."
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleFindReplace(false)}
-                      className="flex-1 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                      Replace Next
-                    </button>
-                    <button
-                      onClick={() => handleFindReplace(true)}
-                      className="flex-1 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-                    >
-                      Replace All
-                    </button>
-                  </div>
-                  <button
-                    onClick={() => setShowFindReplace(false)}
-                    className="w-full py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-                  >
-                    Close
-                  </button>
-                </div>
-              </div>
-            </div>
-          )
-        }
+          </div>
+        )}
 
         {/* Loading Spinner */}
-        {
-          isGenerating && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className={`rounded-xl p-8 flex flex-col items-center ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
-                <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-indigo-600 mb-4"></div>
-                <p className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Generating your document...</p>
-                <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Please wait</p>
-              </div>
+        {isGenerating && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className={`rounded-xl p-8 flex flex-col items-center ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
+              <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-indigo-600 mb-4"></div>
+              <p className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Generating your document...</p>
+              <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Please wait</p>
             </div>
-          )
-        }
+          </div>
+        )}
 
-        {/* New Modals */}
+        {/* External Modals */}
         <ShareModal
           isOpen={showShareModal}
           onClose={() => setShowShareModal(false)}
@@ -1509,6 +955,30 @@ Try keyboard shortcuts:
           onLoadPreset={loadPreset}
         />
 
+        <DraftManager
+          isOpen={showDraftManager}
+          onClose={() => setShowDraftManager(false)}
+          drafts={drafts}
+          currentText={text}
+          onLoadDraft={(draft) => {
+            setText(draft.text);
+            setShowDraftManager(false);
+            showToast(`Loaded draft: ${draft.name}`, 'success');
+          }}
+          onSaveNewDraft={(currentText) => {
+            saveDraft(currentText);
+            showToast('Saved as new draft!', 'success');
+          }}
+          onDeleteDraft={(id) => {
+            deleteDraft(id);
+            showToast('Draft deleted', 'info');
+          }}
+          onRenameDraft={(id, newName) => {
+            renameDraft(id, newName);
+            showToast('Draft renamed', 'success');
+          }}
+        />
+
         <TableEditor
           isOpen={showTableEditor}
           onClose={() => setShowTableEditor(false)}
@@ -1519,10 +989,10 @@ Try keyboard shortcuts:
           message={toast.message}
           type={toast.type}
           isVisible={toast.visible}
-          onClose={() => setToast({ ...toast, visible: false })}
+          onClose={hideToast}
         />
 
-        {/* Footer with Social Links */}
+        {/* Footer */}
         <Footer darkMode={darkMode} />
       </div>
     </div>
@@ -1530,4 +1000,3 @@ Try keyboard shortcuts:
 };
 
 export default Converter;
-
