@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, DragEvent } from 'react';
+import React, { useState, useEffect, useRef, useCallback, type DragEvent } from 'react';
 import { FileCode, Download, Moon, Sun, AlignLeft, AlignCenter, AlignRight, Upload, Eye, EyeOff } from 'lucide-react';
 import { saveAs } from 'file-saver';
 import QRCode from 'qrcode';
