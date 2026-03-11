@@ -35,6 +35,39 @@ const Footer: React.FC<FooterProps> = ({ darkMode = false }) => {
 
     return (
         <footer className={`mt-8 py-6 border-t ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
+            <style>
+                {`
+                @keyframes scroll-left {
+                    0% { transform: translateX(100vw); }
+                    100% { transform: translateX(-100%); }
+                }
+                .marquee-text {
+                    display: inline-block;
+                    white-space: nowrap;
+                    animation: scroll-left 25s linear infinite;
+                }
+                .marquee-text:hover {
+                    animation-play-state: paused;
+                }
+                `}
+            </style>
+
+            {/* Scrolling Message Banner */}
+            <div className={`overflow-hidden w-full mb-6 py-2 border-y flex items-center ${darkMode ? 'bg-gray-700/50 border-gray-600/50' : 'bg-indigo-50/50 border-indigo-100/50'}`}>
+                <div className="marquee-text font-medium text-sm flex gap-2 items-center text-indigo-600 dark:text-indigo-400">
+                    <span>✨ We are working hard to keep this site free for everyone, forever! If you find it useful, please consider giving feedback or a star, and if you'd like to support the project you can</span>
+                    <a
+                        href="https://buymeacoffee.com/manideep"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline font-bold text-orange-500 hover:text-orange-600 flex items-center gap-1 mx-1"
+                    >
+                        buy me a coffee <Coffee className="w-4 h-4" />
+                    </a>
+                    <span>— thank you!</span>
+                </div>
+            </div>
+
             <div className="max-w-7xl mx-auto px-4">
                 <div className="flex flex-col md:flex-row items-center justify-between gap-6">
                     {/* Creator Info */}

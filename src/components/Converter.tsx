@@ -73,13 +73,27 @@ const Converter = () => {
   // ── Computed Values ─────────────────────────────────────────
   const stats = calculateStats(text);
 
-  // ── Load Saved Draft on Mount ───────────────────────────────
+  // ── Load Saved Draft on Mount & Check Hash ──────────────────
   useEffect(() => {
-    const saved = loadSavedDraft();
-    if (saved.text) setText(saved.text);
-    if (saved.filename) setFilename(saved.filename);
-    if (saved.fontSize) setFontSize(saved.fontSize);
-    if (saved.darkMode !== undefined) setDarkMode(saved.darkMode);
+    // Check if there is data hidden in the URL Hash
+    const hash = window.location.hash;
+    if (hash.startsWith('#data=')) {
+      // Extract and decode the markdown report
+      const encodedData = hash.substring(6);
+      const decodedText = decodeURIComponent(encodedData);
+
+      // Automatically fill the text editor!
+      setText(decodedText);
+
+      // Clean up the URL so it looks nice again
+      history.replaceState(null, '', ' ');
+    } else {
+      const saved = loadSavedDraft();
+      if (saved.text) setText(saved.text);
+      if (saved.filename) setFilename(saved.filename);
+      if (saved.fontSize) setFontSize(saved.fontSize);
+      if (saved.darkMode !== undefined) setDarkMode(saved.darkMode);
+    }
   }, []);
 
   // ── History Tracking ────────────────────────────────────────
